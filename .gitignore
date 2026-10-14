@@ -1,0 +1,24 @@
+# Secrets and local config
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node (UI, added later)
+node_modules/
+dist/
+
+# Bulk raw downloads (re-fetchable); processed, hashed JSONL under data/processed IS committed
+data/raw/*
+!data/raw/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

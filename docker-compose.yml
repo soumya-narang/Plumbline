@@ -1,0 +1,16 @@
+# FalkorDB for local development and the demo host.
+# Host ports are offset (6390, 3010) so they do not clash with a local Redis on 6379.
+# The image tag is pinned by digest in docs/falkordb-engine.md once G0 records it.
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: plumbline-falkordb
+    ports:
+      - "6390:6379"   # database (Redis protocol)
+      - "3010:3000"   # FalkorDB Browser
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+    restart: unless-stopped
+
+volumes:
+  falkordb-data:
