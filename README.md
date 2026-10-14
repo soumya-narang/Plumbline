@@ -5,9 +5,20 @@ refusal, and remembers every accepted risk together with the assumptions it rest
 assumption, exactly the affected decisions reopen.
 
 Built for [Graph Hacks: Context for AI Agents](https://www.wemakedevs.org/hackathons/falkordb) (Oct 15-18, 2026).
-Status: early scaffolding. Nothing here is a finished feature yet.
 
-## Verdicts
+**Status:** the data pipeline and graph are working. The verdict engine, decision memory, agent and UI are not built yet.
+
+## The incident
+
+The replay is a real event: on 2026-08-04 a compromised maintainer account published trojanized releases of `keyv`,
+`cache-manager` and the `@cacheable/*` packages within 25 minutes (OSV `MAL-2026-11523`, `11524`, `11558` to `11561`).
+Details and sources: [docs/incident.md](docs/incident.md).
+
+The fleet is 14 public repositories pinned to their commit at the minute before the first malicious release, plus
+two clearly labelled planted fixtures. Result so far: no real repository locked a malicious version, and `nestjs/nest`
+sat one patch below one (`cache-manager@7.2.9` against malicious `7.2.10`).
+
+## Verdicts (planned)
 
 | Verdict | Meaning |
 |---|---|
@@ -15,32 +26,53 @@ Status: early scaffolding. Nothing here is a finished feature yet.
 | CLEARED | Valid only relative to stated assumptions, stored as `ASSUMES` edges |
 | UNKNOWN | Evidence is missing (for example no lockfile); the agent refuses to guess |
 
-The LLM selects tools and phrases answers. Verdicts come from deterministic, unit-tested code in `policy`.
+The language model selects tools and phrases answers. Verdicts come from deterministic, unit-tested code.
 
 ## Repository layout
 
 ```
 docker-compose.yml     FalkorDB for local development (ports 6390 and 3010)
 pyproject.toml         Python package and dev tooling
-src/plumbline/         Application code (ingest, graph, policy, agent, api)
-queries/               One named .cypher file per query the product depends on
-tests/                 Unit tests; policy tests come first
-data/raw/              Bulk downloads, git-ignored and re-fetchable
-data/processed/        Versioned, hashed JSONL that the demo loads
-docs/                  Verified engine behaviour, incident selection, data model
-scripts/               Repeatable one-off tooling
+src/plumbline/
+  ingest/              npm lockfile parser, fleet pinning, OSV advisories, processed JSONL builder
+  graph/               connection, schema, loader
+  cli.py               `python -m plumbline <command>`
+queries/               One named .cypher file per query; queries/load/ holds the loader statements
+tests/                 Unit tests, plus integration tests that skip when FalkorDB is not running
+data/
+  incident.json        The chosen incident and its as-of time
+  fleet.json           Pinned repositories with lockfile hashes
+  overlay.json         Declared (synthetic) service and exposure overlay
+  fixtures/planted/    Hand-authored lockfiles
+  processed/           Versioned, hashed JSONL that the graph loads from (committed)
+  raw/                 Downloaded lockfiles, git-ignored and re-fetchable
+docs/                  Verified engine behaviour, incident, data model
+scripts/               probe_fleet.py, the tool used to choose the fleet
 ```
 
 ## Quick start
 
 ```bash
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev]"      # on macOS/Linux: .venv/bin/python
 cp .env.example .env
-docker compose up -d
+docker compose up -d                                  # FalkorDB on localhost:6390, browser on :3010
+
+python -m plumbline load                              # rebuild the graph from data/processed
+python -m plumbline query q1_exposure_base            # advisory x service exposure
+python -m plumbline query q2_explain_path -p artifact=planted/gateway -p purl=pkg:npm/keyv@6.0.0
+pytest
 ```
 
-FalkorDB listens on `localhost:6390`; the browser UI is at <http://localhost:3010>.
+To regenerate the data from scratch (needs `git` and network access):
+
+```bash
+python -m plumbline pin-fleet     # pin repos to the incident time, download and hash lockfiles
+python -m plumbline build-data    # fetch advisories, write data/processed/*.jsonl
+```
 
 ## Documents
 
-- [docs/falkordb-engine.md](docs/falkordb-engine.md): what was verified against the running engine
+- [docs/falkordb-engine.md](docs/falkordb-engine.md): behaviour verified against the running engine
 - [docs/incident.md](docs/incident.md): the real incident chosen for the replay
+- [docs/data-model.md](docs/data-model.md): nodes, edges, indexes and known limits

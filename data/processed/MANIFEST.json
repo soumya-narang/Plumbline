@@ -1,0 +1,16 @@
+{
+ "advisories.jsonl": "f72d5424c133f765486c71081bdf47c9affc451b37ea20fe224b60b9156d80fc",
+ "lockgraph/apollographql__apollo-server.jsonl": "26e442947f6592890dbbe95a00fe9e4fbc67934d791cd3db507c327900f7fefd",
+ "lockgraph/axios__axios.jsonl": "1f127c867509d15f674abb7c52e3d40021220cbf9557233bb760f921204e30c2",
+ "lockgraph/lerna__lerna.jsonl": "c3e9b995bc0b55274b61cc9f64691802ae9b0a8c6c11b9e754b6f46163635d65",
+ "lockgraph/microsoft__TypeScript.jsonl": "056d585fa7dddf560245c29dbbd74c08baecb112bd387b0073a2619659769227",
+ "lockgraph/mochajs__mocha.jsonl": "84647350827274f8fb3c8ba8f796456c3b053824b5c5fada02ee03a16c4d46d8",
+ "lockgraph/nestjs__nest.jsonl": "e7b3084adb10e2228d14b20466cc7b096433962da87a04a6c6799eb28f97a43c",
+ "lockgraph/nodemailer__nodemailer.jsonl": "55664eaabc653f99c0e4af25b79251c8f8aca8947724b7fa88d383acfddf6371",
+ "lockgraph/npm__cli.jsonl": "08e166fedb45fa286646391af54b02e36df7858116ab9c650dd918b688846a50",
+ "lockgraph/planted__gateway.jsonl": "6dac3da022d492b76eb1d2b21217f2f19784f3208b6dbdfd04ece2f02bc25248",
+ "lockgraph/planted__orders-api.jsonl": "dce8eb5a212314636de415845daf2f0af2a0731a6415facb424785767afff69d",
+ "lockgraph/serverless__serverless.jsonl": "c3f35436c63bb642f7c29c9b5c80f834d02ef99772b01c68184c2acbe6f0d9b5",
+ "lockgraph/socketio__socket.io.jsonl": "de355e85ee2e100b18fb9f843b308cfa00de543394e09bc0dbd71684678b4aca",
+ "lockgraph/winstonjs__winston.jsonl": "9203f8121a7f02dc7e6785223dd19cceffd1b6d2b4708c42564313f1b3a2a71b"
+}
