@@ -1,0 +1,162 @@
+[
+ {
+  "id": "nestjs/nest",
+  "kind": "real",
+  "sha": "95002ab0b1cb6e0bfcb14f4baba97b7ba0e9045d",
+  "committed_at": "2026-08-04T05:42:12Z",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "3c60a88bb7643ad0e66266c1041c036074d6ae1c24ab0864c91ab9f7a05e9b57",
+  "note": ""
+ },
+ {
+  "id": "axios/axios",
+  "kind": "real",
+  "sha": "c3f553c740ebf3dff5e22dae24e9caaafafddd2d",
+  "committed_at": "2026-07-30T08:24:04+02:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "2f50827acde4aa4342fd7fa90a46dd5bf11917cdc5fafb8703bfbf5928b22b63",
+  "note": ""
+ },
+ {
+  "id": "serverless/serverless",
+  "kind": "real",
+  "sha": "efae83844bac5cbb4502c805b5e95eebcdaf4b27",
+  "committed_at": "2026-08-04T11:59:46+01:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "f57cc6d5c9b2fa59e57d98874e69583f7aecc84f9b67cddae44a86ea500c9aa0",
+  "note": ""
+ },
+ {
+  "id": "mochajs/mocha",
+  "kind": "real",
+  "sha": "284f0c23082e3e55106d61c3e69e29f6637b86bd",
+  "committed_at": "2026-08-02T11:33:36-07:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "a309515ae95472bf623850bbbfb9c779ad72562f36f7fd5c400eedc919010a3d",
+  "note": ""
+ },
+ {
+  "id": "nodemailer/nodemailer",
+  "kind": "real",
+  "sha": "2a0e8c3d9a6e3498afe0059ee5fe1180befef66c",
+  "committed_at": "2026-08-04T13:54:51+03:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "9bb4149bd96cc5e32b00900e9ae448fb2dc48665a8febfcdd3aaa6c75453bbb2",
+  "note": ""
+ },
+ {
+  "id": "lerna/lerna",
+  "kind": "real",
+  "sha": "dba7ef06173120499fc98eb738b1d800e0b33016",
+  "committed_at": "2026-08-04T13:53:54+04:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "755b0fa67dc795f6fb7f6ce653d09049ce3f409cc8bfb340b362def557d69ece",
+  "note": ""
+ },
+ {
+  "id": "apollographql/apollo-server",
+  "kind": "real",
+  "sha": "53ac3c13fcf36dd22fb0dbb757a270ae58e89227",
+  "committed_at": "2026-07-08T09:45:26+02:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "7e769fc06e86f20f320998fbc7df0602880229841f46e0f0dac0863f597d32fb",
+  "note": ""
+ },
+ {
+  "id": "socketio/socket.io",
+  "kind": "real",
+  "sha": "ae7fb46e08c5ed964b4a1ea8b1703e816511598e",
+  "committed_at": "2026-07-24T16:43:53+02:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "4f11c21a2734640af5aae1409f4244535f2133bce742aacd2dafc553692bec20",
+  "note": ""
+ },
+ {
+  "id": "npm/cli",
+  "kind": "real",
+  "sha": "4cdcceac047f82571d0ec734e18b87d1d130e042",
+  "committed_at": "2026-08-03T14:38:08-04:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "b1e80a92f776577abb5de7da7b13969cfc11520fff0d6a5388b3b80a91b27a49",
+  "note": ""
+ },
+ {
+  "id": "winstonjs/winston",
+  "kind": "real",
+  "sha": "ff0b79de8562bb322c390fbc82fe71c11f373428",
+  "committed_at": "2026-07-15T20:01:13-05:00",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "916fbc5f044cc713a78f57f7c59c90ab5404c90374190e7a8f7ffb875fc70cf0",
+  "note": ""
+ },
+ {
+  "id": "microsoft/TypeScript",
+  "kind": "real",
+  "sha": "8bcca184786cad6273459b20032b82f056ee7d80",
+  "committed_at": "2026-08-04T01:37:39Z",
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "fee046e932f0ee95acc905e43fbb4b3655a314ada796286c70bb34f507717226",
+  "note": ""
+ },
+ {
+  "id": "typeorm/typeorm",
+  "kind": "real",
+  "sha": "04ff4daedcf60fa4ffd0d5d33bbafaac1a9bbc96",
+  "committed_at": "2026-07-29T10:16:22+02:00",
+  "lockfile": "pnpm-lock.yaml",
+  "lock_state": "unsupported",
+  "lockfile_sha256": "cafc14ef8368adff135631fd767a342207e6cee21e92e326d2f6019a509aac0c",
+  "note": "pnpm-lock.yaml is not parsed by this build"
+ },
+ {
+  "id": "eslint/eslint",
+  "kind": "real",
+  "sha": "56110356652dd614b3cf0933538abb551fc6bd6f",
+  "committed_at": "2026-08-04T10:59:24+02:00",
+  "lockfile": null,
+  "lock_state": "absent",
+  "lockfile_sha256": null,
+  "note": "no lockfile at this commit"
+ },
+ {
+  "id": "sindresorhus/got",
+  "kind": "real",
+  "sha": "e3924aa1e53a6ca3eb93a43618ce532442a89b40",
+  "committed_at": "2026-07-06T22:36:53+02:00",
+  "lockfile": null,
+  "lock_state": "absent",
+  "lockfile_sha256": null,
+  "note": "no lockfile at this commit"
+ },
+ {
+  "id": "planted/gateway",
+  "kind": "planted",
+  "sha": null,
+  "committed_at": null,
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "94d29ae7385c86c131b78a0d42bc2176219cac286b43d7a7929d6dfbc6a43a99",
+  "note": "hand-authored fixture; dependency edges below the malicious packages are illustrative"
+ },
+ {
+  "id": "planted/orders-api",
+  "kind": "planted",
+  "sha": null,
+  "committed_at": null,
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "90cf0355048e5659ec20090543bb3deaa05ecf784082746be36ee1fe3fe3c30b",
+  "note": "hand-authored fixture; dependency edges below the malicious packages are illustrative"
+ }
+]

@@ -1,0 +1,13 @@
+{
+  "name": "keyv / cacheable maintainer-account compromise",
+  "as_of": "2026-08-04T11:12:00Z",
+  "note": "Fleet repositories are pinned to the last commit at or before as_of, the minute the first malicious version was published.",
+  "advisories": [
+    "MAL-2026-11523",
+    "MAL-2026-11524",
+    "MAL-2026-11558",
+    "MAL-2026-11559",
+    "MAL-2026-11560",
+    "MAL-2026-11561"
+  ]
+}

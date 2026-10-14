@@ -1,0 +1,21 @@
+{
+  "comment": "DECLARED, not discovered. A synthetic deployment overlay: which service runs each artifact and how exposed it is. It is a modelling assumption for the demo and is labelled as such in the UI and README.",
+  "services": {
+    "planted/orders-api": {"service": "orders-api", "exposure": "internet", "tier": 1},
+    "planted/gateway": {"service": "edge-gateway", "exposure": "internet", "tier": 1},
+    "nestjs/nest": {"service": "nest-platform", "exposure": "internal", "tier": 2},
+    "axios/axios": {"service": "http-client-lib", "exposure": "internet", "tier": 2},
+    "serverless/serverless": {"service": "deploy-cli", "exposure": "internal", "tier": 3},
+    "mochajs/mocha": {"service": "test-runner", "exposure": "internal", "tier": 3},
+    "nodemailer/nodemailer": {"service": "mail-service", "exposure": "internet", "tier": 2},
+    "lerna/lerna": {"service": "monorepo-tooling", "exposure": "internal", "tier": 3},
+    "apollographql/apollo-server": {"service": "graphql-api", "exposure": "internet", "tier": 1},
+    "socketio/socket.io": {"service": "realtime-gateway", "exposure": "internet", "tier": 1},
+    "npm/cli": {"service": "package-tooling", "exposure": "internal", "tier": 3},
+    "winstonjs/winston": {"service": "logging-service", "exposure": "internal", "tier": 3},
+    "microsoft/TypeScript": {"service": "build-compiler", "exposure": "internal", "tier": 3},
+    "typeorm/typeorm": {"service": "data-access", "exposure": "internet", "tier": 2},
+    "eslint/eslint": {"service": "lint-pipeline", "exposure": "internal", "tier": 3},
+    "sindresorhus/got": {"service": "fetch-service", "exposure": "internet", "tier": 2}
+  }
+}

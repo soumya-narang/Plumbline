@@ -1,0 +1,19 @@
+{
+  "comment": "Public repositories chosen with scripts/probe_fleet.py. Each is pinned to its state at the incident's as_of time.",
+  "repos": [
+    "nestjs/nest",
+    "axios/axios",
+    "serverless/serverless",
+    "mochajs/mocha",
+    "nodemailer/nodemailer",
+    "lerna/lerna",
+    "apollographql/apollo-server",
+    "socketio/socket.io",
+    "npm/cli",
+    "winstonjs/winston",
+    "microsoft/TypeScript",
+    "typeorm/typeorm",
+    "eslint/eslint",
+    "sindresorhus/got"
+  ]
+}
