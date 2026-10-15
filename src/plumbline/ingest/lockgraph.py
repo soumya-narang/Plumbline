@@ -32,7 +32,7 @@ def build_lockgraph(entry: FleetEntry) -> dict:
         lines.append({"t": "requires", "artifact": entry.id, "from": f"{entry.id}::{src}", "to": f"{entry.id}::{dst}"})
     LOCKGRAPH_DIR.mkdir(parents=True, exist_ok=True)
     lockgraph_path(entry).write_text(
-        "".join(json.dumps(line, sort_keys=True) + "\n" for line in lines), encoding="utf-8")
+        "".join(json.dumps(line, sort_keys=True) + "\n" for line in lines), encoding="utf-8", newline="\n")
     return {"artifact": entry.id, "deps": len(graph.deps), "edges": len(graph.edges)}
 
 
@@ -48,4 +48,4 @@ def write_manifest() -> None:
         str(p.relative_to(config.PROCESSED)).replace("\\", "/"): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in files
     }
-    MANIFEST_PATH.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")

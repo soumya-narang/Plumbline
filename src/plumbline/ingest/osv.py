@@ -45,7 +45,7 @@ def fetch_advisories() -> list[dict]:
             rows.append(normalise(resp.json()))
     rows.sort(key=lambda r: (r["published_ms"], r["id"]))
     config.PROCESSED.mkdir(parents=True, exist_ok=True)
-    ADVISORIES_PATH.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows), encoding="utf-8")
+    ADVISORIES_PATH.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows), encoding="utf-8", newline="\n")
     return rows
 
 

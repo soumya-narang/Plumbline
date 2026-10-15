@@ -160,4 +160,4 @@ def refresh_planted() -> list[FleetEntry]:
 
 def _write_fleet(entries: list[FleetEntry]) -> None:
     payload = json.dumps([asdict(e) for e in entries], indent=1)
-    FLEET_PATH.write_text(payload + "\n", encoding="utf-8")
+    FLEET_PATH.write_text(payload + "\n", encoding="utf-8", newline="\n")

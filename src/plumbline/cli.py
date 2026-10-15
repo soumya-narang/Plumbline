@@ -56,7 +56,7 @@ def _cmd_triage(args: argparse.Namespace) -> None:
             out = Path(args.receipts)
             out.mkdir(parents=True, exist_ok=True)
             (out / f"{args.advisory}__{v.artifact.replace('/', '__')}.json").write_text(
-                json.dumps(receipt, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+                json.dumps(receipt, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
 
 
 def _cmd_replay(args: argparse.Namespace) -> None:

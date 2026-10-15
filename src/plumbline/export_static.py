@@ -22,7 +22,7 @@ DEFAULT_OUT = config.ROOT / "web" / "data"
 
 def _write(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(data, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
 
 
 def _static_run(run: dict) -> dict:

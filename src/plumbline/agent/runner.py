@@ -188,13 +188,13 @@ SYSTEM_PROMPT = (
 )
 
 
-def _openai_tools(tool_list) -> list[dict]:
+def _chat_tools(tool_list) -> list[dict]:
     return [{"type": "function", "function": {
         "name": t.name, "description": t.description or "", "parameters": t.input_schema}} for t in tool_list]
 
 
 async def run_llm(client: Client, run: AgentRun, settings: config.Settings, transport: httpx.AsyncBaseTransport | None = None) -> None:
-    tools = _openai_tools((await client.list_tools()).tools)
+    tools = _chat_tools((await client.list_tools()).tools)
     messages = [{"role": "system", "content": SYSTEM_PROMPT.format(at=run.at)}, {"role": "user", "content": run.question}]
     headers = {"Authorization": f"Bearer {settings.llm_api_key}"} if settings.llm_api_key else {}
     async with httpx.AsyncClient(base_url=settings.llm_base_url, headers=headers, timeout=60, transport=transport) as http:
