@@ -1,0 +1,227 @@
+{
+ "artifacts_graded": [
+  "nestjs/nest",
+  "axios/axios",
+  "mochajs/mocha",
+  "nodemailer/nodemailer",
+  "winstonjs/winston",
+  "microsoft/TypeScript",
+  "planted/billing-worker",
+  "planted/gateway",
+  "planted/orders-api",
+  "planted/storefront"
+ ],
+ "artifacts_skipped": {
+  "apollographql/apollo-server": "uses workspaces",
+  "eslint/eslint": "lockfile absent",
+  "lerna/lerna": "uses workspaces",
+  "npm/cli": "uses workspaces",
+  "serverless/serverless": "uses workspaces",
+  "sindresorhus/got": "lockfile absent",
+  "socketio/socket.io": "uses workspaces",
+  "typeorm/typeorm": "lockfile unsupported"
+ },
+ "failures": {
+  "graph": [],
+  "retrieval": [
+   {
+    "answered": [
+     "cache-manager"
+    ],
+    "artifact": "nestjs/nest",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   },
+   {
+    "answered": [],
+    "artifact": "axios/axios",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   },
+   {
+    "answered": [],
+    "artifact": "mochajs/mocha",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   },
+   {
+    "answered": [],
+    "artifact": "nodemailer/nodemailer",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   },
+   {
+    "answered": [],
+    "artifact": "winstonjs/winston",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   },
+   {
+    "answered": [],
+    "artifact": "microsoft/TypeScript",
+    "expected": [
+     "eslint"
+    ],
+    "kind": "pulled_by",
+    "target": "keyv@4.5.4"
+   }
+  ],
+  "sql": [],
+  "sql_forward": []
+ },
+ "generated": "2026-10-15T11:47:18Z",
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.14"
+ },
+ "oracle": {
+  "npm": "11.19.0",
+  "tool": "npm ls --package-lock-only --offline"
+ },
+ "query_lines": {
+  "graph": {
+   "fleet": 3,
+   "locks": 2,
+   "pulled_by": 6
+  },
+  "retrieval": {
+   "fleet": 0,
+   "locks": 0,
+   "pulled_by": 0
+  },
+  "sql": {
+   "fleet": 1,
+   "locks": 1,
+   "pulled_by": 8
+  },
+  "sql_forward": {
+   "fleet": 1,
+   "locks": 1,
+   "pulled_by": 10
+  }
+ },
+ "questions": {
+  "fleet": 7,
+  "locks": 70,
+  "pulled_by": 16
+ },
+ "repeats_per_question": 3,
+ "results": {
+  "graph": {
+   "fleet": {
+    "accuracy": 1.0,
+    "correct": 7,
+    "p50_ms": 2.742,
+    "p95_ms": 3.065,
+    "questions": 7
+   },
+   "locks": {
+    "accuracy": 1.0,
+    "correct": 70,
+    "p50_ms": 1.27,
+    "p95_ms": 1.861,
+    "questions": 70
+   },
+   "pulled_by": {
+    "accuracy": 1.0,
+    "correct": 16,
+    "p50_ms": 1.664,
+    "p95_ms": 2.836,
+    "questions": 16
+   }
+  },
+  "retrieval": {
+   "fleet": {
+    "accuracy": 0.8571,
+    "correct": 6,
+    "p50_ms": 17.703,
+    "p95_ms": 18.869,
+    "questions": 7
+   },
+   "locks": {
+    "accuracy": 1.0,
+    "correct": 70,
+    "p50_ms": 18.168,
+    "p95_ms": 30.337,
+    "questions": 70
+   },
+   "pulled_by": {
+    "accuracy": 0.4375,
+    "correct": 7,
+    "p50_ms": 78.628,
+    "p95_ms": 134.624,
+    "questions": 16
+   }
+  },
+  "sql": {
+   "fleet": {
+    "accuracy": 1.0,
+    "correct": 7,
+    "p50_ms": 0.005,
+    "p95_ms": 0.02,
+    "questions": 7
+   },
+   "locks": {
+    "accuracy": 1.0,
+    "correct": 70,
+    "p50_ms": 0.002,
+    "p95_ms": 0.004,
+    "questions": 70
+   },
+   "pulled_by": {
+    "accuracy": 1.0,
+    "correct": 16,
+    "p50_ms": 0.618,
+    "p95_ms": 1.899,
+    "questions": 16
+   }
+  },
+  "sql_forward": {
+   "fleet": {
+    "accuracy": 1.0,
+    "correct": 7,
+    "p50_ms": 0.005,
+    "p95_ms": 0.07,
+    "questions": 7
+   },
+   "locks": {
+    "accuracy": 1.0,
+    "correct": 70,
+    "p50_ms": 0.002,
+    "p95_ms": 0.004,
+    "questions": 70
+   },
+   "pulled_by": {
+    "accuracy": 1.0,
+    "correct": 16,
+    "p50_ms": 113.187,
+    "p95_ms": 1325.686,
+    "questions": 16
+   }
+  }
+ },
+ "targets": [
+  "keyv@6.0.0",
+  "keyv@5.6.0",
+  "keyv@4.5.4",
+  "cache-manager@7.2.9",
+  "cache-manager@7.2.10",
+  "@cacheable/utils@2.5.0",
+  "@cacheable/utils@2.5.1"
+ ]
+}

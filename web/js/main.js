@@ -6,6 +6,7 @@ import { renderFleet, rowKey } from "./fleet.js";
 import { VERDICT_RANK, attachClouds, esc, factView, plural } from "./format.js";
 import { renderGraphTab } from "./graphtab.js";
 import { initHero } from "./hero.js";
+import { initBench } from "./bench.js";
 import { initHood } from "./hood.js";
 import { createTimeline } from "./timeline.js";
 
@@ -167,6 +168,7 @@ async function boot() {
   state.meta = meta;
   initHero();
   initHood(meta);
+  initBench();
   $("incident-name").textContent = meta.incident.name;
   const live = api.isLive();
   const mode = $("badge-mode");

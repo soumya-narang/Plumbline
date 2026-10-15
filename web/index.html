@@ -141,8 +141,8 @@
       <div class="wrap hood-grid">
         <div class="hood-copy">
           <p class="eyebrow">The graph</p>
-          <h2 id="hood-title">Take FalkorDB away and there is nothing left</h2>
-          <p class="hood-lede">Evidence, memory and the agent's tools all run on one FalkorDB graph. This is what it does.</p>
+          <h2 id="hood-title">What the graph is doing here</h2>
+          <p class="hood-lede">Evidence, memory and the agent's tools all run on one FalkorDB graph. Here is what it does, and how it compares with the alternatives.</p>
           <dl class="jobs">
             <div><dt>Evidence</dt><dd>A shortest-path query over the resolved dependency edges returns the chain for every exposed service.</dd></div>
             <div><dt>Memory</dt><dd>Decisions point at the facts they assume. One traversal finds exactly which decisions a new event breaks.</dd></div>
@@ -155,6 +155,12 @@
           <pre class="cypher" id="code-view" tabindex="0"></pre>
           <p class="hint" id="code-hint"></p>
         </div>
+      </div>
+      <div class="wrap bench" id="bench" hidden>
+        <h3>Measured, not claimed</h3>
+        <p class="bench-lede" id="bench-lede"></p>
+        <div class="table-scroll"><table class="bench-table" id="bench-table"></table></div>
+        <p class="bench-note" id="bench-note"></p>
       </div>
     </section>
   </main>
