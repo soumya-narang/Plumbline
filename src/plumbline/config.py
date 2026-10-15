@@ -23,6 +23,13 @@ class Settings:
     falkordb_host: str
     falkordb_port: int
     falkordb_password: str | None
+    llm_base_url: str | None
+    llm_api_key: str | None
+    llm_model: str | None
+
+    @property
+    def llm_configured(self) -> bool:
+        return bool(self.llm_base_url and self.llm_model)
 
 
 def load_settings() -> Settings:
@@ -30,4 +37,7 @@ def load_settings() -> Settings:
         falkordb_host=os.getenv("FALKORDB_HOST", "localhost"),
         falkordb_port=int(os.getenv("FALKORDB_PORT", "6390")),
         falkordb_password=os.getenv("FALKORDB_PASSWORD") or None,
+        llm_base_url=os.getenv("LLM_BASE_URL") or None,
+        llm_api_key=os.getenv("LLM_API_KEY") or None,
+        llm_model=os.getenv("LLM_MODEL") or None,
     )
