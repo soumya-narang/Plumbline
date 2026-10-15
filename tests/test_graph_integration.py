@@ -31,7 +31,7 @@ def test_explain_path_follows_the_dependency_chain(graph):
         graph, "q2_explain_path", {"artifact": "planted/gateway", "purl": "pkg:npm/keyv@6.0.0"}
     ).result_set[0]
     assert hops == 3
-    assert chain[0].endswith("@acme/http-client") and chain[-1].endswith("/keyv")
+    assert chain == ["@acme/http-client@1.4.0", "@cacheable/net@2.1.1", "@cacheable/utils@2.5.1", "keyv@6.0.0"]
 
 
 def test_direct_dependency_has_a_zero_length_path(graph):

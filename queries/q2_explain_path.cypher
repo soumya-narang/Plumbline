@@ -5,6 +5,6 @@ MATCH (a:Artifact {id: $artifact})-[:LOCKS]->(bad:LockedDep)-[:IS]->(:PackageVer
       (a)-[:LOCKS]->(top:LockedDep {direct: true})
 WITH top, bad, shortestPath((top)-[:REQUIRES*0..8]->(bad)) AS p
 WHERE p IS NOT NULL
-RETURN [n IN nodes(p) | n.key] AS chain, length(p) AS hops
+RETURN [n IN nodes(p) | n.name + '@' + n.version] AS chain, length(p) AS hops
 ORDER BY hops
 LIMIT 1
