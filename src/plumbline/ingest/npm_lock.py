@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from urllib.parse import quote, unquote
 
 ROOT_KEY = ""
-DEP_FIELDS = ("dependencies", "optionalDependencies", "peerDependencies")
+HARD_FIELDS = ("dependencies", "optionalDependencies")
 
 
 class UnsupportedLockfile(ValueError):
@@ -87,12 +87,20 @@ def parse_npm_lock(raw: str | bytes) -> LockGraph:
     direct_keys: set[str] = set()
 
     def requires(key: str, meta: dict) -> set[str]:
+        """The installs a package causes. A peer requirement only asks the host to provide a package, so it counts
+        only when the lockfile marks the target as installed because of a peer (``"peer": true``); otherwise a
+        package that merely has a peer dependency on X would wrongly appear to pull in everything X requires."""
         names: set[str] = set()
-        for f in DEP_FIELDS:
+        for f in HARD_FIELDS:
             names.update(meta.get(f) or {})
         if key == ROOT_KEY:
             names.update(meta.get("devDependencies") or {})
+            names.update(meta.get("peerDependencies") or {})
         resolved = {_resolve(packages, key, n) for n in names}
+        for peer_name in meta.get("peerDependencies") or {}:
+            target = _resolve(packages, key, peer_name)
+            if target is not None and packages[target].get("peer"):
+                resolved.add(target)
         resolved.discard(None)
         return resolved  # type: ignore[return-value]
 

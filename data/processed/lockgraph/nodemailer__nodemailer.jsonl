@@ -278,7 +278,6 @@
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@aws-sdk/xml-builder", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@smithy/types"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@aws-sdk/xml-builder", "t": "requires", "to": "nodemailer/nodemailer::node_modules/tslib"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@eslint-community/eslint-utils", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys"}
-{"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@eslint-community/eslint-utils", "t": "requires", "to": "nodemailer/nodemailer::node_modules/eslint"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@eslint/config-array", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@eslint/object-schema"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@eslint/config-array", "t": "requires", "to": "nodemailer/nodemailer::node_modules/debug"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@eslint/config-array", "t": "requires", "to": "nodemailer/nodemailer::node_modules/minimatch"}
@@ -307,7 +306,6 @@
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@smithy/signature-v4", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@smithy/types"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@smithy/signature-v4", "t": "requires", "to": "nodemailer/nodemailer::node_modules/tslib"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/@smithy/types", "t": "requires", "to": "nodemailer/nodemailer::node_modules/tslib"}
-{"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/acorn-jsx", "t": "requires", "to": "nodemailer/nodemailer::node_modules/acorn"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/ajv", "t": "requires", "to": "nodemailer/nodemailer::node_modules/fast-deep-equal"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/ajv", "t": "requires", "to": "nodemailer/nodemailer::node_modules/fast-json-stable-stringify"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/ajv", "t": "requires", "to": "nodemailer/nodemailer::node_modules/json-schema-traverse"}
@@ -379,7 +377,6 @@
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint", "t": "requires", "to": "nodemailer/nodemailer::node_modules/minimatch"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint", "t": "requires", "to": "nodemailer/nodemailer::node_modules/natural-compare"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint", "t": "requires", "to": "nodemailer/nodemailer::node_modules/optionator"}
-{"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint-config-prettier", "t": "requires", "to": "nodemailer/nodemailer::node_modules/eslint"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint-scope", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@types/esrecurse"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint-scope", "t": "requires", "to": "nodemailer/nodemailer::node_modules/@types/estree"}
 {"artifact": "nodemailer/nodemailer", "from": "nodemailer/nodemailer::node_modules/eslint-scope", "t": "requires", "to": "nodemailer/nodemailer::node_modules/esrecurse"}

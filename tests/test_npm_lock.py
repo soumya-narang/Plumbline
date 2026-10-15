@@ -115,3 +115,24 @@ def test_parse_purl_is_the_inverse_of_purl_for():
 
     for name, version in (("keyv", "6.0.0"), ("@cacheable/utils", "2.5.1")):
         assert parse_purl(purl_for(name, version)) == (name, version)
+
+
+def test_a_peer_requirement_alone_is_not_an_edge():
+    # plugin only has a peer dependency on host; host pulls in leaf. plugin must not appear to pull in host or leaf.
+    g = parse_npm_lock(lock({
+        "": {"dependencies": {"plugin": "1", "host": "1"}},
+        "node_modules/plugin": {"version": "1.0.0", "peerDependencies": {"host": "1"}},
+        "node_modules/host": {"version": "1.0.0", "dependencies": {"leaf": "1"}},
+        "node_modules/leaf": {"version": "1.0.0"},
+    }))
+    assert ("node_modules/plugin", "node_modules/host") not in keys(g.edges)
+    assert ("node_modules/host", "node_modules/leaf") in keys(g.edges)
+
+
+def test_a_peer_that_the_lockfile_installed_because_of_the_peer_is_an_edge():
+    g = parse_npm_lock(lock({
+        "": {"dependencies": {"plugin": "1"}},
+        "node_modules/plugin": {"version": "1.0.0", "peerDependencies": {"host": "1"}},
+        "node_modules/host": {"version": "1.0.0", "peer": True},
+    }))
+    assert ("node_modules/plugin", "node_modules/host") in keys(g.edges)
