@@ -6,7 +6,7 @@ assumption, exactly the affected decisions reopen.
 
 Built for [Graph Hacks: Context for AI Agents](https://www.wemakedevs.org/hackathons/falkordb) (Oct 15-18, 2026).
 
-**Status:** the data pipeline and graph are working. The verdict engine, decision memory, agent and UI are not built yet.
+**Status:** data pipeline, graph, verdict policy, triage with receipts, decision memory and the replay are working and tested. The agent (MCP tools), UI and deployment are not built yet.
 
 ## The incident
 
@@ -18,7 +18,7 @@ The fleet is 14 public repositories pinned to their commit at the minute before 
 two clearly labelled planted fixtures. Result so far: no real repository locked a malicious version, and `nestjs/nest`
 sat one patch below one (`cache-manager@7.2.9` against malicious `7.2.10`).
 
-## Verdicts (planned)
+## Verdicts
 
 | Verdict | Meaning |
 |---|---|
@@ -26,7 +26,25 @@ sat one patch below one (`cache-manager@7.2.9` against malicious `7.2.10`).
 | CLEARED | Valid only relative to stated assumptions, stored as `ASSUMES` edges |
 | UNKNOWN | Evidence is missing (for example no lockfile); the agent refuses to guess |
 
-The language model selects tools and phrases answers. Verdicts come from deterministic, unit-tested code.
+Verdicts come only from deterministic, unit-tested code (`src/plumbline/policy`). The graph supplies the evidence: what each
+artifact locks, what an advisory names, and the dependency path between them. A language model will select tools and
+phrase answers; it can never produce or change a verdict.
+
+## What it does today
+
+```bash
+# Who is exposed, with the dependency path, as of 11:40 UTC on the day of the incident?
+python -m plumbline triage MAL-2026-11524 --at 2026-08-04T11:40:00Z --receipts data/raw/receipts
+
+# Re-derive a receipt from the graph and check it (an edited receipt is rejected)
+python -m plumbline verify data/raw/receipts/MAL-2026-11524__planted__gateway.json
+
+# Replay approvals, then a clearly labelled scripted event; exactly one decision reopens
+python -m plumbline replay --to 2026-08-04T13:00:00Z
+```
+
+Decisions record the facts they rest on. When one of those facts is contradicted, only the decisions that assumed it
+reopen. See [docs/data-model.md](docs/data-model.md).
 
 ## Repository layout
 
@@ -36,12 +54,16 @@ pyproject.toml         Python package and dev tooling
 src/plumbline/
   ingest/              npm lockfile parser, fleet pinning, OSV advisories, processed JSONL builder
   graph/               connection, schema, loader
+  policy/              deterministic verdicts (pure functions, no database)
+  triage/              graph-backed evidence gathering, receipts
+  memory/              decisions, assumptions, the replay
   cli.py               `python -m plumbline <command>`
 queries/               One named .cypher file per query; queries/load/ holds the loader statements
 tests/                 Unit tests, plus integration tests that skip when FalkorDB is not running
 data/
   incident.json        The chosen incident and its as-of time
   fleet.json           Pinned repositories with lockfile hashes
+  replay.json          Recorded approvals and the labelled scripted event
   overlay.json         Declared (synthetic) service and exposure overlay
   fixtures/planted/    Hand-authored lockfiles
   processed/           Versioned, hashed JSONL that the graph loads from (committed)

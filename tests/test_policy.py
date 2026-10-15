@@ -18,7 +18,7 @@ def test_affected_version_is_exposed_with_evidence():
     r = evaluate(artifact(locked("6.0.0", depth=4)), ADVISORY)
     assert r.verdict == "EXPOSED" and r.reason == "affected_version_locked"
     assert [x.purl for x in r.evidence] == [BAD]
-    assert r.assumptions == ()
+    assert r.assumptions == (Assumption("lock_snapshot", "abc123"),)  # valid only for this lockfile
 
 
 def test_dev_only_exposure_is_still_exposed():

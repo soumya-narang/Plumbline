@@ -1,0 +1,18 @@
+{
+  "comment": "The replay script. Approvals are recorded human actions; advisory publications are real OSV records and need no event here. Any event with scripted = true is hypothetical and is labelled as such everywhere it is shown.",
+  "events": [
+    {"at": "2026-08-04T11:40:00Z", "type": "approve", "artifact": "planted/orders-api", "advisory": "MAL-2026-11523"},
+    {"at": "2026-08-04T11:40:30Z", "type": "approve", "artifact": "nestjs/nest", "advisory": "MAL-2026-11523"},
+    {"at": "2026-08-04T11:41:00Z", "type": "approve", "artifact": "planted/gateway", "advisory": "MAL-2026-11524"},
+    {"at": "2026-08-04T11:41:30Z", "type": "approve", "artifact": "planted/billing-worker", "advisory": "MAL-2026-11524"},
+    {"at": "2026-08-04T11:42:00Z", "type": "approve", "artifact": "mochajs/mocha", "advisory": "MAL-2026-11524"},
+    {
+      "at": "2026-08-04T12:45:00Z",
+      "type": "advisory_revised",
+      "scripted": true,
+      "advisory": "MAL-2026-11524",
+      "add_purls": ["pkg:npm/keyv@6.0.1"],
+      "note": "Hypothetical follow-up: a second trojanized keyv release is added to the advisory. No real OSV record names this version."
+    }
+  ]
+}

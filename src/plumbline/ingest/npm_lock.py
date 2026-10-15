@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from collections import deque
 from dataclasses import dataclass, field
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 ROOT_KEY = ""
 DEP_FIELDS = ("dependencies", "optionalDependencies", "peerDependencies")
@@ -144,3 +144,9 @@ def _assign_depth(graph: LockGraph, direct_keys: set[str]) -> None:
     for key, dep in list(graph.deps.items()):
         d = 0 if dep.workspace else depth.get(key)
         graph.deps[key] = LockedDep(**{**dep.__dict__, "depth": d})
+
+
+def parse_purl(purl: str) -> tuple[str, str]:
+    """Inverse of :func:`purl_for`: ``pkg:npm/%40scope/name@1.2.3`` -> ``("@scope/name", "1.2.3")``."""
+    name, _, version = unquote(purl.removeprefix("pkg:npm/")).rpartition("@")
+    return name, version

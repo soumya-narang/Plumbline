@@ -108,3 +108,10 @@ def test_cycle_terminates():
 def test_lockfile_v1_is_rejected():
     with pytest.raises(UnsupportedLockfile):
         parse_npm_lock(json.dumps({"lockfileVersion": 1, "dependencies": {}}))
+
+
+def test_parse_purl_is_the_inverse_of_purl_for():
+    from plumbline.ingest.npm_lock import parse_purl
+
+    for name, version in (("keyv", "6.0.0"), ("@cacheable/utils", "2.5.1")):
+        assert parse_purl(purl_for(name, version)) == (name, version)

@@ -75,7 +75,8 @@ def evaluate(artifact: ArtifactState, advisory: AdvisoryState) -> Result:
 
     hits = tuple(sorted((x for x in artifact.locked if x.purl in advisory.affected_purls), key=lambda x: x.purl))
     if hits:
-        return Result("EXPOSED", "affected_version_locked", hits, ())
+        # A remediation decision is only valid for the lockfile it was made against.
+        return Result("EXPOSED", "affected_version_locked", hits, (Assumption("lock_snapshot", artifact.lock_sha256 or ""),))
 
     same_package = tuple(sorted((x for x in artifact.locked if x.name == advisory.package), key=lambda x: x.purl))
     # A lockfile hash is part of every assumption set: if the lockfile changes, nothing here still holds.

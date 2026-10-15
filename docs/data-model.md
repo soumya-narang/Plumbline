@@ -13,6 +13,9 @@ Everything below is produced by `python -m plumbline load` from the JSONL under 
 | `Advisory` | `id` (OSV id) | `kind`, `package`, `summary`, `published`, `published_ms` | OSV |
 | `Service` | `id` (`svc:<name>`) | `name`, `tier`, `declared` | `data/overlay.json` (declared) |
 | `Exposure` | `id` (`exp:<service>`) | `kind` (`internet` or `internal`), `declared` | `data/overlay.json` (declared) |
+| `Decision` | `id` (`dec:<advisory>:<artifact>@<ms>`) | `verdict`, `reason`, `action`, `status` (`accepted` or `reopened`), `created_ms`, `reopened_ms`, `approver`, `policy_version` | written on approval |
+| `Fact` | `id` (`<kind>:<key>`) | `kind` (`lock_snapshot` or `not_affected`), `key`, `created_ms`, `superseded_ms` | created with the first decision that assumes it |
+| `Receipt` | `hash` | `payload` (JSON) | written with each decision |
 
 `LockedDep` is a per-artifact resolution node: the same package version locked by two artifacts has two
 `LockedDep` nodes, so a path query never needs a per-artifact edge filter. First-party workspace members are
@@ -28,15 +31,34 @@ Everything below is produced by `python -m plumbline load` from the JSONL under 
 | `(Advisory)-[:AFFECTS]->(PackageVersion)` | Malicious or vulnerable version named by the advisory |
 | `(Service)-[:RUNS]->(Artifact)` | Declared deployment |
 | `(Service)-[:EXPOSED_VIA]->(Exposure)` | Declared exposure |
+| `(Decision)-[:ABOUT]->(Advisory)`, `(Decision)-[:FOR]->(Artifact)` | What the decision concerns |
+| `(Decision)-[:ASSUMES]->(Fact)` | The facts the decision rests on; the heart of the Reopen |
+| `(Receipt)-[:PROVES]->(Decision)` | The hash-checked record of how the verdict was derived |
 
 ## Indexes and constraints
 
 Range indexes on `Artifact.id`, `Advisory.id`, `PackageVersion.purl`, `LockedDep.id`, `Service.id`, `Exposure.id`.
 Unique constraints on the first four.
 
+## Assumptions and the Reopen
+
+A decision records the facts it rests on as `ASSUMES` edges:
+
+- `lock_snapshot:<hash>`: the lockfile the verdict was derived from (every decision has one).
+- `not_affected:<advisory>:<purl>`: for each version of the advisory's package that the artifact locks, that the
+  advisory does not name it. A CLEARED decision carries one per locked version.
+
+When a later event contradicts a fact, the fact gets `superseded_ms` and query Q5 (`queries/q5_reopen_check.cypher`)
+returns exactly the accepted decisions that assumed it. Those are marked `reopened` and re-evaluated.
+
+## Time
+
+Everything is evaluated *as of* a timestamp. An advisory is invisible before its `published_ms`, and a version added by
+a later revision is invisible before the edge's `since_ms`. That is what lets the replay move backwards as well as forwards.
+
 ## Not yet modelled
 
-`Decision`, `Evidence`, `Receipt`, `Team`, tenants. They arrive with the verdict engine and decision memory.
+`Team` (code owners), tenants, `Task` handoff and `Playbook` (procedural memory).
 
 ## Honest limits
 
