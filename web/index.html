@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plumbline</title>
+  <meta name="description" content="Replay a real npm supply-chain incident: who is exposed, the evidence path, and which earlier decisions reopen.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f14'/%3E%3Cpath d='M16 5v15' stroke='%234cc9f0' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='3.5' fill='%23ff5d5d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#evidence">Skip to evidence</a>
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M16 4v16" stroke="#4cc9f0" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="25" r="4" fill="#ff5d5d"/></svg>
+      <div>
+        <h1>Plumbline</h1>
+        <p id="incident-name" class="muted">Loading incident…</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span id="badge-mode" class="badge" title="Where this page gets its data"></span>
+      <span id="badge-agent" class="badge" title="What chooses the tools"></span>
+      <a class="badge link" href="https://github.com/" id="repo-link" hidden>Source</a>
+    </div>
+  </header>
+
+  <section class="timeline" aria-label="Incident timeline">
+    <div class="tl-controls">
+      <button id="tl-prev" class="icon-btn" aria-label="Previous event">‹</button>
+      <button id="tl-play" class="icon-btn play" aria-label="Play the incident">▶</button>
+      <button id="tl-next" class="icon-btn" aria-label="Next event">›</button>
+      <div class="tl-now"><span id="tl-clock" class="clock">--:--:--</span><span class="muted"> UTC · 2026-08-04</span></div>
+      <div id="tl-label" class="tl-label muted"></div>
+    </div>
+    <ol id="tl-rail" class="rail" aria-label="Events"></ol>
+  </section>
+
+  <div id="banner" role="status"></div>
+
+  <main class="grid">
+    <section class="panel fleet" aria-labelledby="h-fleet">
+      <div class="panel-head">
+        <h2 id="h-fleet">Fleet</h2>
+        <span id="fleet-sub" class="muted small"></span>
+      </div>
+      <div id="adv-tabs" class="adv-tabs" role="tablist" aria-label="Advisories"></div>
+      <div id="counts"></div>
+      <div id="fleet-list" class="fleet-list"></div>
+    </section>
+
+    <section class="panel evidence" id="evidence" aria-labelledby="h-evidence" tabindex="-1">
+      <div class="panel-head"><h2 id="h-evidence">Evidence</h2><span id="ev-sub" class="muted small"></span></div>
+      <div id="evidence-body"></div>
+    </section>
+
+    <section class="panel side" aria-label="Decisions and agent">
+      <div class="panel-head"><h2>Decisions</h2><span id="dec-sub" class="muted small"></span></div>
+      <div id="decisions"></div>
+      <div class="panel-head agent-head"><h2>Ask the agent</h2><span id="agent-sub" class="muted small"></span></div>
+      <div id="agent"></div>
+    </section>
+  </main>
+
+  <footer class="foot muted small">
+    Verdicts come from deterministic code, never from a model. The deployment overlay is declared, not discovered.
+    Planted repositories and the hypothetical event are labelled wherever they appear.
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

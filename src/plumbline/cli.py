@@ -72,6 +72,19 @@ def _cmd_replay(args: argparse.Namespace) -> None:
         print(f"REOPENED {r.artifact}: was {r.before}, now {r.now.result.verdict}; broken: {', '.join(r.broken)}")
 
 
+def _cmd_export_static(_: argparse.Namespace) -> None:
+    from plumbline.export_static import DEFAULT_OUT, export
+
+    n = export()
+    print(f"exported {n} timeline stops to {DEFAULT_OUT}")
+
+
+def _cmd_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    uvicorn.run("plumbline.api.app:app", host=args.host, port=args.port)
+
+
 def _cmd_verify(args: argparse.Namespace) -> None:
     receipt = json.loads(Path(args.receipt).read_text(encoding="utf-8"))
     ok, why = verify(connect(), receipt)
@@ -101,12 +114,19 @@ def main() -> None:
     r = sub.add_parser("replay", help="replay recorded approvals and scripted events up to a time")
     r.add_argument("--to", required=True, help="ISO time to replay to")
 
+    sub.add_parser("export-static", help="write the incident as static JSON for the serverless site")
+
+    sv = sub.add_parser("serve", help="serve the UI and API")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+
     v = sub.add_parser("verify", help="re-derive a receipt from the graph and check it")
     v.add_argument("receipt", help="path to a receipt JSON")
 
     args = parser.parse_args()
     {"pin-fleet": _cmd_pin_fleet, "build-data": _cmd_build_data, "load": _cmd_load, "query": _cmd_query,
-     "triage": _cmd_triage, "replay": _cmd_replay, "verify": _cmd_verify}[args.command](args)
+     "triage": _cmd_triage, "replay": _cmd_replay, "verify": _cmd_verify,
+     "serve": _cmd_serve, "export-static": _cmd_export_static}[args.command](args)
 
 
 if __name__ == "__main__":

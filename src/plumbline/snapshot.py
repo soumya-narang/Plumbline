@@ -5,9 +5,12 @@ The live API and the static export both produce this exact shape, so one front-e
 
 from __future__ import annotations
 
+import os
+
 from falkordb import Graph
 
-from plumbline.graph.client import run_named
+from plumbline.agent.suggestions import SUGGESTIONS
+from plumbline.graph.client import read_query_text, run_named
 from plumbline.ingest.fleet import load_incident
 from plumbline.memory.replay import ReplayState, load_events, seek
 from plumbline.timeutil import to_iso, to_ms
@@ -73,4 +76,15 @@ def snapshot(graph: Graph, at_ms: int, extra: list[dict] | None = None) -> dict:
             "now": r.now.result.verdict, "reason": r.now.result.reason, "broken": list(r.broken),
             "broken_at": to_iso(r.broken_ms),
         } for r in state.reopened],
+    }
+
+
+def build_meta(graph: Graph) -> dict:
+    """What the UI needs before it can draw anything. Shared by the live API and the static export."""
+    return {
+        "incident": load_incident(),
+        "timeline": timeline(graph),
+        "suggestions": SUGGESTIONS,
+        "queries": {"q2": read_query_text("q2_explain_path"), "q5": read_query_text("q5_reopen_check")},
+        "repo": os.getenv("PLUMBLINE_REPO_URL") or None,
     }

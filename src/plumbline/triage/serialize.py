@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import unquote
+
 from plumbline.policy.verdict import Locked
 from plumbline.triage.engine import ArtifactVerdict
 from plumbline.triage.receipt import make_receipt
@@ -28,3 +30,14 @@ def verdict_view(advisory: str, at_ms: int, v: ArtifactVerdict, with_receipt: bo
         "hops": v.hops,
         "receipt": make_receipt(advisory, at_ms, v)["hash"] if with_receipt and r.verdict == "EXPOSED" else None,
     }
+
+
+def fact_label(fact_id: str) -> str:
+    """Plain-language form of an assumption id, mirrored by factView() in the UI."""
+    kind, _, key = fact_id.partition(":")
+    if kind == "lock_snapshot":
+        return "the lockfile has not changed"
+    if kind == "not_affected":
+        advisory, _, purl = key.partition(":")
+        return f"{unquote(purl.removeprefix('pkg:npm/'))} is not named by {advisory}"
+    return fact_id

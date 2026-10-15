@@ -43,7 +43,7 @@ CANDIDATES = [
 def head_sha(repo: str) -> str | None:
     out = subprocess.run(
         ["git", "ls-remote", f"https://github.com/{repo}.git", "HEAD"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=60, check=False,
     )
     return out.stdout.split()[0] if out.returncode == 0 and out.stdout.strip() else None
 
@@ -90,7 +90,7 @@ def main(argv: list[str]) -> None:
             row = probe(client, repo)
             rows.append(row)
             hit = ",".join(f"{k}@{'/'.join(v)}" for k, v in row.get("incident_packages", {}).items())
-            print(f"{repo:36} {str(row['lockfile']):20} {row['bytes']:>9} "
+            print(f"{repo:36} {row['lockfile']!s:20} {row['bytes']:>9} "
                   f"v{row.get('lockfileVersion', '-')!s:<3} pkgs={row.get('packages', '-')!s:<6} {hit}")
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(json.dumps(rows, indent=1), encoding="utf-8")

@@ -34,7 +34,7 @@ def test_health(client):
 def test_meta_has_a_labelled_timeline_and_agent_mode(client):
     meta = client.get("/api/meta").json()
     assert meta["mode"] == "live" and len(meta["timeline"]) == 13
-    assert [s for s in meta["timeline"] if s["scripted"]][0]["kind"] == "revision"
+    assert next(s for s in meta["timeline"] if s["scripted"])["kind"] == "revision"
     assert meta["agent"]["backend"] in ("planner", "llm")
 
 

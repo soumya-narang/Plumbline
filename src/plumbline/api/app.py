@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -19,10 +18,9 @@ from pydantic import BaseModel, Field
 from plumbline import config
 from plumbline.agent.runner import ask
 from plumbline.graph.client import connect
-from plumbline.ingest.fleet import load_incident
 from plumbline.memory.decisions import propose
 from plumbline.memory.replay import seek
-from plumbline.snapshot import snapshot, timeline
+from plumbline.snapshot import build_meta, snapshot
 from plumbline.timeutil import to_iso, to_ms
 from plumbline.triage.engine import triage_artifact
 from plumbline.triage.receipt import make_receipt, verify
@@ -91,9 +89,8 @@ def create_app() -> FastAPI:
     def meta() -> dict:
         settings = config.load_settings()
         return {
+            **build_meta(connect()),
             "mode": "live",
-            "incident": load_incident(),
-            "timeline": timeline(connect()),
             "agent": {"backend": "llm" if settings.llm_configured else "planner",
                       "model": settings.llm_model if settings.llm_configured else None},
         }

@@ -85,5 +85,6 @@ def reopen(graph: Graph, at_ms: int) -> list[Reopened]:
 
 
 def list_decisions(graph: Graph) -> list[dict]:
-    header = ("decision", "verdict", "action", "status", "created_ms", "advisory", "artifact", "assumptions")
+    header = ("decision", "verdict", "action", "status", "created_ms", "approver", "advisory", "artifact",
+              "assumption_ids")
     return [dict(zip(header, row)) for row in run_named(graph, "memory/list_decisions").result_set]

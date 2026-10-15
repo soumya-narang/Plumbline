@@ -87,3 +87,11 @@ def test_the_scripted_edge_does_not_leak_into_the_real_graph(graph):
     reset(graph)
     scripted = graph.ro_query("MATCH ()-[e:AFFECTS {scripted:true}]->() RETURN count(e)").result_set[0][0]
     assert scripted == 0
+
+
+def test_decisions_list_their_assumption_ids_and_approver(graph):
+    state = seek(graph, BEFORE_REVISION)
+    billing = next(d for d in state.decisions if d["artifact"] == "planted/billing-worker")
+    assert billing["approver"] == "replay"
+    assert "not_affected:MAL-2026-11524:pkg:npm/keyv@6.0.1" in billing["assumption_ids"]
+    assert any(a.startswith("lock_snapshot:") for a in billing["assumption_ids"])

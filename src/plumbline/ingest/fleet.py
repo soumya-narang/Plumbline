@@ -66,12 +66,12 @@ def commit_at(repo: str, until: str) -> tuple[str, str] | None:
             clone = subprocess.run(
                 ["git", "clone", "--bare", "--single-branch", "--filter=tree:0",
                  f"--shallow-since={_days_before(until, window)}", f"https://github.com/{repo}.git", tmp],
-                capture_output=True, text=True, timeout=300)
+                capture_output=True, text=True, timeout=300, check=False)
             if clone.returncode != 0:
                 last_error = clone.stderr.strip()[:200]
                 continue  # e.g. no commits in this window; retry with a wider one
             log = subprocess.run(["git", "-C", tmp, "log", "-1", f"--before={until}", "--format=%H %cI", "HEAD"],
-                                 capture_output=True, text=True, timeout=60)
+                                 capture_output=True, text=True, timeout=60, check=False)
             if log.stdout.strip():
                 sha, committed_at = log.stdout.split()
                 return sha, committed_at
@@ -84,7 +84,7 @@ def _days_before(iso: str, window: str) -> str:
     from datetime import datetime, timedelta
 
     days = int(window.split()[0])
-    return (datetime.fromisoformat(iso.replace("Z", "+00:00")) - timedelta(days=days)).date().isoformat()
+    return (datetime.fromisoformat(iso) - timedelta(days=days)).date().isoformat()
 
 
 def _pin_real(client: httpx.Client, repo: str, until: str) -> FleetEntry:

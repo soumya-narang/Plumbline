@@ -22,6 +22,7 @@ from mcp.client import Client
 
 from plumbline import config
 from plumbline.agent.mcp_server import build_server
+from plumbline.triage.serialize import fact_label
 
 MAX_STEPS = 6
 
@@ -57,7 +58,7 @@ async def call_tool(client: Client, run: AgentRun, name: str, args: dict) -> dic
         data = res.structured_content if getattr(res, "structured_content", None) else (json.loads(text) if text else {})
         if res.is_error:
             error, data = text or "tool error", {"error": text}
-    except Exception as exc:  # a tool failure must not crash the run
+    except Exception as exc:  # noqa: BLE001  a tool failure must be reported in the trace, not crash the run
         error, data = str(exc), {"error": str(exc)}
     run.calls.append(ToolCall(name, args, data, int((time.perf_counter() - started) * 1000), error))
     return data
@@ -65,11 +66,11 @@ async def call_tool(client: Client, run: AgentRun, name: str, args: dict) -> dic
 
 # ---------------------------------------------------------------- built-in planner
 
-_ADVISORY_ID = re.compile(r"MAL-\d{4}-\d+", re.I)
-_REOPEN = re.compile(r"reopen|stale|invalidat|changed|no longer|reconsider|still valid", re.I)
-_DECISIONS = re.compile(r"\bdecision|decided|approved|accepted risk", re.I)
-_PROPOSE = re.compile(r"propose|should we approve|approve|sign off|what would you decide", re.I)
-_EXPLAIN = re.compile(r"why|path|how|explain|chain|evidence|prove", re.I)
+_ADVISORY_ID = re.compile(r"MAL-\d{4}-\d+", re.IGNORECASE)
+_REOPEN = re.compile(r"reopen|stale|invalidat|changed|no longer|reconsider|still valid", re.IGNORECASE)
+_DECISIONS = re.compile(r"\bdecision|decided|approved|accepted risk", re.IGNORECASE)
+_PROPOSE = re.compile(r"propose|should we approve|approve|sign off|what would you decide", re.IGNORECASE)
+_EXPLAIN = re.compile(r"why|path|how|explain|chain|evidence|prove", re.IGNORECASE)
 
 
 def _pick_advisory(question: str, advisories: list[dict]) -> str | None:
@@ -122,7 +123,7 @@ async def run_planner(client: Client, run: AgentRun) -> None:
             ex = await call_tool(client, run, "explain_path",
                                  {"advisory": d["advisory"], "artifact": d["artifact"], "at": run.at})
             lines.append(f"{d['artifact']} was decided {d['decided_verdict']} for {d['advisory']}, but it assumed "
-                         f"{', '.join(d['broken_assumptions'])}, which became false at {d['broken_at']}. "
+                         f"that {'; '.join(fact_label(a) for a in d['broken_assumptions'])}, which stopped being true at {d['broken_at']}. "
                          f"It is now {ex.get('verdict', '?')}"
                          + (f" via {_fmt_path(ex.get('path'))}." if ex.get("path")
                             else f" ({ex.get('evidence') and ', '.join(e['purl'] for e in ex['evidence'])})."))

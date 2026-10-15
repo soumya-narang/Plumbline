@@ -28,3 +28,6 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["BLE001"]  # fixtures skip on any connection failure by design

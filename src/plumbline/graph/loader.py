@@ -7,6 +7,7 @@ from collections.abc import Iterable, Iterator
 from itertools import islice
 
 from falkordb import Graph
+from redis.exceptions import ResponseError
 
 from plumbline import config
 from plumbline.graph.client import connect, run_named
@@ -54,7 +55,7 @@ def load_all(graph_name: str = "plumbline") -> dict[str, int]:
     graph = connect(graph_name)
     try:
         graph.delete()
-    except Exception:  # the graph does not exist yet
+    except ResponseError:  # the graph does not exist yet
         pass
     apply_schema(graph)
 
