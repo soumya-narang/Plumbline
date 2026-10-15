@@ -1,5 +1,5 @@
 {
- "advisories.jsonl": "f72d5424c133f765486c71081bdf47c9affc451b37ea20fe224b60b9156d80fc",
+ "advisories.jsonl": "95887b3ca93e50eea77f44f471a656675728c80bb5dc3ce60b47fc8a55cfae32",
  "lockgraph/apollographql__apollo-server.jsonl": "26e442947f6592890dbbe95a00fe9e4fbc67934d791cd3db507c327900f7fefd",
  "lockgraph/axios__axios.jsonl": "1f127c867509d15f674abb7c52e3d40021220cbf9557233bb760f921204e30c2",
  "lockgraph/lerna__lerna.jsonl": "c3e9b995bc0b55274b61cc9f64691802ae9b0a8c6c11b9e754b6f46163635d65",

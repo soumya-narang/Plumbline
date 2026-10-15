@@ -1,6 +1,5 @@
 from plumbline.ingest.osv import normalise
 
-
 RECORD = {
     "id": "MAL-2026-11561",
     "summary": "Malicious code in @cacheable/utils (npm)",
@@ -23,3 +22,8 @@ def test_kind_and_timestamp():
 def test_every_affected_version_becomes_a_purl():
     rec = {**RECORD, "affected": [{"package": {"name": "keyv", "ecosystem": "npm"}, "versions": ["6.0.0", "6.0.1"]}]}
     assert normalise(rec)["purls"] == ["pkg:npm/keyv@6.0.0", "pkg:npm/keyv@6.0.1"]
+
+
+def test_affected_versions_carry_name_and_version_so_graph_nodes_are_never_anonymous():
+    row = normalise(RECORD)
+    assert row["affected"] == [{"purl": "pkg:npm/%40cacheable/utils@2.5.1", "name": "@cacheable/utils", "version": "2.5.1"}]

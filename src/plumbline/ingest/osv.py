@@ -9,14 +9,14 @@ import httpx
 
 from plumbline import config
 from plumbline.ingest.fleet import load_incident
-from plumbline.ingest.npm_lock import purl_for
+from plumbline.ingest.npm_lock import parse_purl, purl_for
 
 OSV_VULN_URL = "https://api.osv.dev/v1/vulns/{id}"
 ADVISORIES_PATH = config.PROCESSED / "advisories.jsonl"
 
 
 def _to_ms(iso: str) -> int:
-    return int(datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp() * 1000)
+    return int(datetime.fromisoformat(iso).timestamp() * 1000)
 
 
 def normalise(record: dict) -> dict:
@@ -31,6 +31,7 @@ def normalise(record: dict) -> dict:
         "published": record["published"],
         "published_ms": _to_ms(record["published"]),
         "purls": purls,
+        "affected": [{"purl": p, "name": parse_purl(p)[0], "version": parse_purl(p)[1]} for p in purls],
     }
 
 

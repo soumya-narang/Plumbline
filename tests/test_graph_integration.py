@@ -54,3 +54,9 @@ def test_near_miss_is_visible_in_the_graph(graph):
         "RETURN pv.version"
     ).result_set
     assert rows == [["7.2.9"]]  # one patch below the malicious 7.2.10
+
+
+def test_every_package_version_node_has_a_name_and_version(graph):
+    nameless = graph.ro_query(
+        "MATCH (pv:PackageVersion) WHERE pv.name IS NULL OR pv.version IS NULL RETURN pv.purl").result_set
+    assert nameless == []
