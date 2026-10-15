@@ -68,6 +68,22 @@ python -m plumbline replay --to 2026-08-04T13:00:00Z
 Decisions record the facts they rest on. When one of those facts is contradicted, only the decisions that assumed it
 reopen. See [docs/data-model.md](docs/data-model.md).
 
+## Measured
+
+The same lockfile questions are answered by the graph, by SQLite and by text retrieval, and graded against `npm ls`, which
+shares nothing with this project's parser or graph (`python -m plumbline benchmark`, results in [docs/benchmark.md](docs/benchmark.md)).
+
+| Question | Graph (FalkorDB) | SQL, tuned | Text retrieval |
+|---|---|---|---|
+| Does A lock P@V? (70) | 100% | 100% | 100% |
+| Which direct dependencies pull P@V in? (16) | 100% | 100% | 44% |
+| Which artifacts lock P@V? (7) | 100% | 100% | 86% |
+
+A tuned in-process SQL query gets the same answers and is faster on lookups at this size. The graph's case is not speed: it is
+evidence that carries its path, memory that knows what it assumed, algorithms such as PageRank, and a store several agents can
+share. The benchmark also caught a real bug: peer dependencies were being treated as installs, which could name the wrong
+package to bump. It is fixed and tested.
+
 ## Repository layout
 
 ```
