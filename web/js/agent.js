@@ -25,24 +25,19 @@ function resultHtml(run) {
     : "Written by the built-in planner. No model was involved.";
   return `<div class="trace" aria-label="Tool calls made over MCP">${calls}</div>
     <p class="answer">${esc(run.answer)}</p>
-    <span class="answer-by">${who} Verdicts in the drawing come from the tool results, not from this sentence.</span>`;
+    <span class="answer-by">${who} Verdicts elsewhere on the page come from the tool results, not from this sentence.</span>`;
 }
 
 export function createAgent({ suggestions, live, getStop, ask }) {
   const root = document.getElementById("agent");
-  document.getElementById("agent-sub").textContent = live ? "tools over MCP" : "recorded answers";
-
-  root.innerHTML = `<div class="desk-body">
-    <div class="desk-left">
-      <ul class="suggest">${suggestions.map((q, i) => `<li><button type="button" data-q="${i}">${esc(q)}</button></li>`).join("")}</ul>
-      <form class="ask" id="ask-form">
-        <input id="ask-input" maxlength="300" aria-label="Question for the agent" autocomplete="off"
-          placeholder="${live ? "Ask about the fleet" : "Free text runs in the live deployment"}" ${live ? "" : "disabled"}>
-        <button class="btn" ${live ? "" : "disabled"}>Ask</button>
-      </form>
-    </div>
-    <div class="desk-right" id="agent-out" aria-live="polite"><p class="thinking">Choose a question. The agent works out which tools to call and shows each call here.</p></div>
-  </div>`;
+  root.innerHTML = `<p class="muted" style="margin-bottom:14px;max-width:62ch">The agent reaches the graph only through read-only tools served over MCP, and every call is shown below.${live ? "" : " This static site replays recorded answers; free text runs in the live deployment."}</p>
+    <ul class="suggest">${suggestions.map((q, i) => `<li><button type="button" data-q="${i}">${esc(q)}</button></li>`).join("")}</ul>
+    <form class="ask" id="ask-form">
+      <input id="ask-input" maxlength="300" aria-label="Question for the agent" autocomplete="off"
+        placeholder="${live ? "Ask about the fleet" : "Available in the live deployment"}" ${live ? "" : "disabled"}>
+      <button class="btn" ${live ? "" : "disabled"}>Ask</button>
+    </form>
+    <div class="agent-out" id="agent-out" aria-live="polite"></div>`;
   const out = root.querySelector("#agent-out");
   const input = root.querySelector("#ask-input");
 

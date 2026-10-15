@@ -1,10 +1,8 @@
-import { clock, esc, hhmm } from "./format.js";
+import { clock, esc } from "./format.js";
 
 const GAP = 20 * 60; // seconds; a longer silence is broken out of the axis, as a drawing breaks a long dimension
 const BREAK = 6; // percent of the axis given to a break
 const MIN_DOMAIN = 14; // percent; a short stretch still gets room to read
-const AXIS = 108; // px from the top of the ruler
-const CHAR = 6.95; // px per mono character at the label size
 
 const secs = (iso) => Date.parse(iso) / 1000;
 const minutesBetween = (a, b) => Math.round((b - a) / 60);
@@ -39,50 +37,19 @@ function buildScale(stops) {
   return { domains, pct };
 }
 
-const flagName = (s) => {
-  if (s.kind === "start") return "start";
-  if (s.kind === "revision") return "hypothetical event";
-  return s.label.replace(" published", "").split("/").pop();
-};
-
-/**
- * Label lanes as a descending staircase: a flag stands taller than every flag whose stem falls under its label.
- * Later flags are lower, so no stem ever crosses a label. A label that would run off the right edge flips left.
- */
-function assignLanes(items, widthPx) {
-  items.sort((a, b) => a.x - b.x);
-  for (const it of items) {
-    it.px = (it.x / 100) * widthPx;
-    it.need = it.name.length * CHAR + 30;
-    it.flip = it.px + it.need > widthPx;
-  }
-  for (let i = items.length - 1; i >= 0; i--) {
-    const it = items[i];
-    let lane = 0;
-    for (let j = i + 1; j < items.length; j++) {
-      const other = items[j];
-      const clash = it.flip ? other.px > it.px - it.need : other.px < it.px + it.need;
-      if (clash) lane = Math.max(lane, other.lane + 1);
-    }
-    it.lane = lane;
-  }
-}
-
 export function createTimeline({ stops, onChange }) {
   const ruler = document.getElementById("ruler");
   const prev = document.getElementById("tl-prev");
   const next = document.getElementById("tl-next");
   const play = document.getElementById("tl-play");
-  const nowLine = document.getElementById("tl-label");
+  const nowLabel = document.getElementById("tl-label");
   const clockEl = document.getElementById("tl-clock");
   const scale = buildScale(stops);
   let index = 0;
   let timer = null;
 
   function layout() {
-    const width = ruler.clientWidth || 1000;
-    const parts = [`<div class="axis"></div>`];
-
+    const parts = ['<div class="axis"></div>'];
     scale.domains.forEach((d, di) => {
       for (let s = d.start; s <= d.end; s += 60) {
         const major = (s / 60) % 5 === 0;
@@ -96,26 +63,12 @@ export function createTimeline({ stops, onChange }) {
         parts.push(`<i class="brk" style="left:${x}%"></i><span class="brk-label" style="left:${x}%">${minutesBetween(d.end, nxt.start)} min later</span>`);
       }
     });
-
-    const flags = stops.filter((s) => s.kind !== "approval").map((s) => ({ s, x: scale.pct(secs(s.at)), name: flagName(s) }));
-    assignLanes(flags, width);
-    flags.forEach(({ s, x, name, lane, flip }) => {
-      const cls = s.kind === "revision" ? "hypo" : s.kind;
-      parts.push(`<button type="button" class="flag ${cls}${flip ? " flip" : ""}" data-i="${s.index}" style="left:${x}%;--h:${28 + lane * 19}px"
-        aria-label="${esc(s.label)} at ${clock(s.at)} UTC${s.scripted ? ", hypothetical" : ""}">
-        <span class="stem"></span><span class="cap"></span><span class="name">${esc(name)}</span></button>`);
+    stops.forEach((s) => {
+      const kind = s.kind === "revision" ? "hypo" : s.kind;
+      const text = `${clock(s.at)} UTC · ${s.label}${s.scripted ? " (hypothetical)" : ""}`;
+      parts.push(`<button type="button" class="mk ${kind}" data-i="${s.index}" style="left:${scale.pct(secs(s.at))}%" title="${esc(text)}" aria-label="${esc(text)}"><i></i></button>`);
     });
-
-    const approvals = stops.filter((s) => s.kind === "approval");
-    approvals.forEach((s) => {
-      parts.push(`<button type="button" class="dec" data-i="${s.index}" style="left:${scale.pct(secs(s.at))}%;top:${AXIS - 18}px;height:18px"
-        aria-label="${esc(s.label)} at ${clock(s.at)} UTC"><span class="stem"></span><span class="cap" style="top:0"></span></button>`);
-    });
-    if (approvals.length) {
-      parts.push(`<span class="dec-group" style="left:${scale.pct(secs(approvals[0].at))}%;top:${AXIS - 40}px;transform:translateX(-4px)">${approvals.length} decisions recorded</span>`);
-    }
-
-    parts.push(`<div class="playhead" id="playhead"><span id="ph-tag"></span></div>`);
+    parts.push('<div class="playhead" id="playhead"><span id="ph-tag"></span></div>');
     ruler.innerHTML = parts.join("");
     paint();
   }
@@ -129,14 +82,12 @@ export function createTimeline({ stops, onChange }) {
       el.setAttribute("aria-current", i === index ? "step" : "false");
     });
     const head = ruler.querySelector("#playhead");
-    if (head) {
-      const pct = scale.pct(secs(stop.at));
-      head.style.left = `${pct}%`;
-      head.classList.toggle("right", pct > 78); // keep the time tag inside the sheet
-      head.querySelector("#ph-tag").textContent = clock(stop.at);
-    }
+    const pct = scale.pct(secs(stop.at));
+    head.style.left = `${pct}%`;
+    head.classList.toggle("edge-r", pct > 92); // keep the time tag inside the card
+    head.querySelector("#ph-tag").textContent = clock(stop.at);
     clockEl.textContent = clock(stop.at);
-    nowLine.innerHTML = `${esc(stop.label)}${stop.scripted ? ' <span class="hypo">· scripted</span>' : ""}`;
+    nowLabel.innerHTML = `${esc(stop.label)}${stop.scripted ? ' <span class="hypo">· hypothetical</span>' : ""}`;
     prev.disabled = index === 0;
     next.disabled = index === stops.length - 1;
   }
@@ -175,7 +126,7 @@ export function createTimeline({ stops, onChange }) {
   next.addEventListener("click", () => { stopPlaying(); go(index + 1); });
   play.addEventListener("click", () => (timer ? stopPlaying() : startPlaying()));
   document.addEventListener("keydown", (e) => {
-    if (e.target.matches("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.matches("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "ArrowRight") { stopPlaying(); go(index + 1); }
     if (e.key === "ArrowLeft") { stopPlaying(); go(index - 1); }
   });
@@ -183,5 +134,5 @@ export function createTimeline({ stops, onChange }) {
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layout, 120); });
 
   layout();
-  return { go, current: () => stops[index], stopPlaying, hhmm };
+  return { go, current: () => stops[index], stopPlaying };
 }

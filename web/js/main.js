@@ -3,25 +3,28 @@ import { createAgent } from "./agent.js";
 import { renderDecisions } from "./decisions.js";
 import { renderEvidence } from "./evidence.js";
 import { renderFleet, rowKey } from "./fleet.js";
-import { VERDICT_RANK, VERDICT_WORD, esc, factView, revLetter } from "./format.js";
+import { VERDICT_RANK, esc, factView, plural } from "./format.js";
 import { createTimeline } from "./timeline.js";
 
-const state = { meta: null, snap: null, prev: null, stop: null, sel: { advisory: null, artifact: null } };
+const state = { meta: null, snap: null, stop: null, sel: { advisory: null, artifact: null }, tab: "evidence", pinnedTab: false };
 const $ = (id) => document.getElementById(id);
+const TABS = ["evidence", "decisions", "ask"];
 
 function toast(html) {
   const el = $("toast");
   el.innerHTML = html;
   el.hidden = false;
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => (el.hidden = true), 7000);
+  toast.t = setTimeout(() => (el.hidden = true), 6500);
 }
 
-/** The revision letter of the timeline stop at a given instant, for the delta markers. */
-const revFor = (iso) => {
-  const stop = state.meta.timeline.find((s) => s.at === iso);
-  return stop ? revLetter(stop.index) : "?";
-};
+function setTab(name) {
+  state.tab = name;
+  TABS.forEach((t) => {
+    $(`tab-${t}`).setAttribute("aria-selected", String(t === name));
+    $(`panel-${t}`).hidden = t !== name;
+  });
+}
 
 /** Keep the user's selection if it still exists; otherwise pick the most urgent thing on screen. */
 function reconcileSelection(snap) {
@@ -38,7 +41,7 @@ function reconcileSelection(snap) {
   }
 }
 
-/** Rows that became exposed since the previous snapshot, so the schedule can flag them. */
+/** Rows that became exposed since the previous snapshot, so the list can flag them. */
 function changedRows(prev, snap) {
   const seen = new Map();
   prev?.advisories.forEach((a) => a.rows.forEach((r) => seen.set(rowKey(a.id, r.artifact), r.verdict)));
@@ -50,50 +53,37 @@ function changedRows(prev, snap) {
   return changed;
 }
 
-function renderBanners(snap) {
-  const parts = [];
-  const scripted = snap.events.find((e) => e.scripted);
-  if (scripted) {
-    parts.push(`<div class="aside hypo"><span class="label">Hypothetical event</span><p>${esc(scripted.note)} It is scripted for this demonstration and is not a real advisory record.</p></div>`);
-  }
-  if (snap.reopened.length) {
-    const names = snap.reopened.map((r) => `<b>${esc(r.artifact)}</b>`).join(", ");
-    const letter = revFor(snap.reopened[0].broken_at);
-    parts.push(`<div class="aside change"><span class="label">Revision ${esc(letter)}</span><p>${snap.reopened.length === 1 ? "One decision was" : `${snap.reopened.length} decisions were`} reopened: ${names}. Only decisions that assumed a fact the new event contradicts were touched.</p></div>`);
-  }
-  $("banner").innerHTML = parts.join("");
-}
-
-function renderTitleBlock() {
-  const { snap, sel, stop } = state;
-  const live = api.isLive();
-  $("tb-drawing").textContent = sel.advisory ? `Exposure to ${sel.advisory}` : "Exposure survey";
-  $("tb-source").textContent = live ? "Live FalkorDB graph" : "Recorded snapshots";
-  $("tb-rev").textContent = stop ? revLetter(stop.index) : "A";
-  void snap;
+/** One notice at a time: the thing that changed, and why. */
+function renderNotice(snap) {
+  const el = $("notice");
+  if (!snap.reopened.length) { el.innerHTML = ""; return; }
+  const r = snap.reopened[0];
+  const names = snap.reopened.map((x) => esc(x.artifact)).join(", ");
+  el.innerHTML = `<div class="notice"><div><strong>${plural(snap.reopened.length, "decision")} reopened: ${names}</strong>
+      <span class="why">${esc(factView(r.broken[0]).label)} was assumed, until a <span class="hypo-tag">hypothetical</span> advisory revision named it. The event is scripted for this demonstration and is not a real record.</span></div>
+    <button type="button" class="btn ghost" id="review">Review</button></div>`;
+  $("review").onclick = () => { state.sel = { advisory: r.advisory, artifact: r.artifact }; setTab("evidence"); render(); $("detail").focus(); };
 }
 
 function render(changed = new Set()) {
   const { snap, sel } = state;
-  const ctx = { live: api.isLive(), queries: state.meta.queries, revFor };
+  const ctx = { live: api.isLive(), queries: state.meta.queries };
   renderFleet(snap, sel, changed, {
     onAdvisory: (id) => { state.sel.advisory = id; state.sel.artifact = null; reconcileSelection(snap); render(); },
-    onArtifact: (id) => { state.sel.artifact = id; render(); },
+    onArtifact: (id) => { state.sel.artifact = id; setTab("evidence"); render(); },
   });
   renderEvidence(snap, sel, ctx, { onApprove, onVerify });
-  renderDecisions(snap, sel, (advisory, artifact) => { state.sel = { advisory, artifact }; render(); }, revFor);
-  renderBanners(snap);
-  renderTitleBlock();
+  renderDecisions(snap, sel, (advisory, artifact) => { state.sel = { advisory, artifact }; setTab("evidence"); render(); });
+  renderNotice(snap);
 }
 
 async function onApprove(advisory, artifact, approver) {
   try {
     const res = await api.approve(advisory, artifact, state.stop, approver);
-    state.prev = state.snap;
     state.snap = res.snapshot;
     render();
   } catch (err) {
-    toast(`<span class="label">Not recorded</span>${esc(err.message)}`);
+    toast(`<b>Not recorded.</b> ${esc(err.message)}`);
   }
 }
 
@@ -108,11 +98,11 @@ async function onStop(stop) {
   const snap = await api.getSnapshot(stop);
   if (state.stop !== stop) return; // the viewer moved on while this was loading
   const newlyReopened = snap.reopened.filter((r) => !prev?.reopened.some((p) => p.decision === r.decision));
-  state.prev = prev;
   state.snap = snap;
   reconcileSelection(snap);
   if (newlyReopened.length) {
     state.sel = { advisory: newlyReopened[0].advisory, artifact: newlyReopened[0].artifact };
+    if (!state.pinnedTab) setTab("evidence");
   } else if (stop.kind === "advisory") {
     // jump to the newest exposure when a malicious release lands
     const adv = snap.advisories.find((a) => a.id === stop.advisory);
@@ -120,10 +110,6 @@ async function onStop(stop) {
     if (adv && hit) state.sel = { advisory: adv.id, artifact: hit.artifact };
   }
   render(changedRows(prev, snap));
-  if (newlyReopened.length) {
-    const r = newlyReopened[0];
-    toast(`<span class="label">Decision reopened</span><b>${esc(r.artifact)}</b> was ${esc(VERDICT_WORD[r.before])}, now ${esc(VERDICT_WORD[r.now])}.<br>${esc(r.broken.map((b) => factView(b).label).join("; "))}.`);
-  }
 }
 
 function initTheme() {
@@ -134,7 +120,7 @@ function initTheme() {
   const wanted = new URLSearchParams(location.search).get("theme") ?? stored;
   if (wanted === "light" || wanted === "dark") root.dataset.theme = wanted;
   const effective = () => root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  const paint = () => { btn.textContent = effective() === "dark" ? "Blueprint" : "Vellum"; };
+  const paint = () => { btn.textContent = effective() === "dark" ? "Switch to light" : "Switch to dark"; };
   btn.addEventListener("click", () => {
     root.dataset.theme = effective() === "dark" ? "light" : "dark";
     try { localStorage.setItem("plumbline.theme", root.dataset.theme); } catch { /* storage unavailable */ }
@@ -143,8 +129,20 @@ function initTheme() {
   paint();
 }
 
+function initTabs() {
+  TABS.forEach((t) => $(`tab-${t}`).addEventListener("click", () => setTab(t)));
+  $("tab-evidence").parentElement.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const next = TABS[(TABS.indexOf(state.tab) + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    setTab(next);
+    $(`tab-${next}`).focus();
+    e.stopPropagation();
+  });
+}
+
 async function boot() {
   initTheme();
+  initTabs();
   const meta = await api.init();
   state.meta = meta;
   $("incident-name").textContent = meta.incident.name;
@@ -152,7 +150,7 @@ async function boot() {
   const mode = $("badge-mode");
   mode.textContent = live ? "Live graph" : "Recorded snapshots";
   mode.classList.toggle("live", live);
-  $("badge-agent").textContent = meta.agent.backend === "llm" ? `Agent · ${meta.agent.model}` : "Agent · built-in planner, no model";
+  $("badge-agent").textContent = meta.agent.backend === "llm" ? `Agent: ${meta.agent.model}` : "Agent: built-in planner, no model";
   if (meta.repo) { const a = $("repo-link"); a.href = meta.repo; a.hidden = false; }
 
   createAgent({ suggestions: meta.suggestions, live, getStop: () => state.stop, ask: api.ask });
@@ -161,10 +159,12 @@ async function boot() {
   const param = new URLSearchParams(location.search).get("start");
   const hero = meta.timeline.find((s) => s.kind === "advisory" && s.label.startsWith("keyv"));
   timeline.go(param !== null ? Number(param) : (hero?.index ?? 0));
+  const tab = new URLSearchParams(location.search).get("tab");
+  if (TABS.includes(tab)) { state.pinnedTab = true; setTab(tab); } // a ?tab= link stays on that tab
 }
 
 boot().catch((err) => {
   console.error(err);
   $("incident-name").textContent = "Could not load the incident";
-  toast(`<span class="label">Load failed</span>${esc(err.message)}`);
+  toast(`<b>Load failed.</b> ${esc(err.message)}`);
 });
