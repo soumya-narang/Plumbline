@@ -79,6 +79,12 @@ def _cmd_export_static(_: argparse.Namespace) -> None:
     print(f"exported {n} timeline stops to {DEFAULT_OUT}")
 
 
+def _cmd_benchmark(_: argparse.Namespace) -> None:
+    from plumbline.bench.run import main
+
+    main()
+
+
 def _cmd_serve(args: argparse.Namespace) -> None:
     import uvicorn
 
@@ -116,6 +122,8 @@ def main() -> None:
 
     sub.add_parser("export-static", help="write the incident as static JSON for the serverless site")
 
+    sub.add_parser("benchmark", help="grade the graph, SQL and naive retrieval against npm's own resolver")
+
     sv = sub.add_parser("serve", help="serve the UI and API")
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)
@@ -126,7 +134,8 @@ def main() -> None:
     args = parser.parse_args()
     {"pin-fleet": _cmd_pin_fleet, "build-data": _cmd_build_data, "load": _cmd_load, "query": _cmd_query,
      "triage": _cmd_triage, "replay": _cmd_replay, "verify": _cmd_verify,
-     "serve": _cmd_serve, "export-static": _cmd_export_static}[args.command](args)
+     "serve": _cmd_serve, "export-static": _cmd_export_static,
+     "benchmark": _cmd_benchmark}[args.command](args)
 
 
 if __name__ == "__main__":
