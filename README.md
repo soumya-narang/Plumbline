@@ -6,7 +6,7 @@ assumption, exactly the affected decisions reopen.
 
 Built for [Graph Hacks: Context for AI Agents](https://www.wemakedevs.org/hackathons/falkordb) (Oct 15-18, 2026).
 
-**Status:** data pipeline, graph, verdict policy, triage with receipts, decision memory and the replay are working and tested. The agent (MCP tools), UI and deployment are not built yet.
+**Status:** the data pipeline, graph, verdict policy, receipts, decision memory, replay, MCP server and agent, web UI and Docker deployment all work and are tested. Tenants, an algorithm tool and an ablation are not built yet.
 
 ## The incident
 
@@ -30,7 +30,18 @@ Verdicts come only from deterministic, unit-tested code (`src/plumbline/policy`)
 artifact locks, what an advisory names, and the dependency path between them. A language model will select tools and
 phrase answers; it can never produce or change a verdict.
 
-## What it does today
+## Try it
+
+```bash
+docker compose up -d && python -m plumbline load
+python -m plumbline serve            # http://127.0.0.1:8000
+```
+
+Step through the incident with the timeline (or press play). The page also runs with no server from recorded snapshots;
+see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
+exposing six read-only tools. Approving a decision is a human action and is deliberately not a tool.
+
+## What it does from the terminal
 
 ```bash
 # Who is exposed, with the dependency path, as of 11:40 UTC on the day of the incident?
@@ -57,7 +68,13 @@ src/plumbline/
   policy/              deterministic verdicts (pure functions, no database)
   triage/              graph-backed evidence gathering, receipts
   memory/              decisions, assumptions, the replay
+  agent/               typed tools, MCP server, built-in planner, optional model backend
+  api/                 FastAPI app serving the UI and JSON
+  snapshot.py          everything the UI needs for one moment; export_static.py writes them all
   cli.py               `python -m plumbline <command>`
+web/                   Dependency-free UI (vanilla JS modules); web/data holds the static export
+deploy/                Container entrypoint and the Hugging Face Space settings
+Dockerfile             FalkorDB, API and UI in one unprivileged container
 queries/               One named .cypher file per query; queries/load/ holds the loader statements
 tests/                 Unit tests, plus integration tests that skip when FalkorDB is not running
 data/
@@ -98,3 +115,4 @@ python -m plumbline build-data    # fetch advisories, write data/processed/*.jso
 - [docs/falkordb-engine.md](docs/falkordb-engine.md): behaviour verified against the running engine
 - [docs/incident.md](docs/incident.md): the real incident chosen for the replay
 - [docs/data-model.md](docs/data-model.md): nodes, edges, indexes and known limits
+- [docs/deploy.md](docs/deploy.md): GitHub Pages and Hugging Face Space deployment
