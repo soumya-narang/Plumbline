@@ -43,11 +43,12 @@ def timeline(graph: Graph) -> list[dict]:
 
 def _event_view(e: dict) -> dict:
     return {"at": e["at"], "type": e["type"], "scripted": bool(e.get("scripted")), "advisory": e["advisory"],
-            "artifact": e.get("artifact"), "add_purls": e.get("add_purls"), "note": e.get("note", "")}
+            "artifact": e.get("artifact"), "add_purls": e.get("add_purls"), "note": e.get("note", ""),
+            "approver": e.get("approver"), "manual": bool(e.get("manual"))}
 
 
-def snapshot(graph: Graph, at_ms: int) -> dict:
-    state: ReplayState = seek(graph, at_ms)
+def snapshot(graph: Graph, at_ms: int, extra: list[dict] | None = None) -> dict:
+    state: ReplayState = seek(graph, at_ms, extra)
     decisions = {(d["advisory"], d["artifact"]): d for d in state.decisions}
     advisories = []
     for adv in advisories_at(graph, at_ms):

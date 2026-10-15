@@ -29,8 +29,9 @@ class ReplayState:
     reopened: tuple[Reopened, ...]
 
 
-def load_events() -> list[dict]:
-    events = json.loads(REPLAY_PATH.read_text(encoding="utf-8"))["events"]
+def load_events(extra: list[dict] | None = None) -> list[dict]:
+    """Recorded events plus any extra (for example manual approvals), ordered by time."""
+    events = json.loads(REPLAY_PATH.read_text(encoding="utf-8"))["events"] + list(extra or [])
     return sorted(({**e, "at_ms": to_ms(e["at"])} for e in events), key=lambda e: e["at_ms"])
 
 
@@ -48,15 +49,16 @@ def _apply_revision(graph: Graph, event: dict) -> None:
               {"advisory": event["advisory"], "at_ms": event["at_ms"], "rows": rows}, read_only=False)
 
 
-def seek(graph: Graph, at_ms: int) -> ReplayState:
+def seek(graph: Graph, at_ms: int, extra: list[dict] | None = None) -> ReplayState:
     reset(graph)
     applied: list[dict] = []
     reopened: list[Reopened] = []
-    for event in load_events():
+    for event in load_events(extra):
         if event["at_ms"] > at_ms:
             break
         if event["type"] == "approve":
-            commit(graph, propose(graph, event["advisory"], event["artifact"], event["at_ms"]), REPLAY_APPROVER)
+            approver = event.get("approver", REPLAY_APPROVER)
+            commit(graph, propose(graph, event["advisory"], event["artifact"], event["at_ms"]), approver)
         elif event["type"] == "advisory_revised":
             _apply_revision(graph, event)
         else:
