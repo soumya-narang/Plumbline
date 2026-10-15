@@ -85,6 +85,11 @@
       "service": "billing-worker",
       "exposure": "internal",
       "tier": 2
+    },
+    "planted/storefront": {
+      "service": "storefront-web",
+      "exposure": "internet",
+      "tier": 1
     }
   }
 }

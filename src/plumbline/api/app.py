@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from plumbline import config
 from plumbline.agent.runner import ask
 from plumbline.graph.client import connect
+from plumbline.graphdata import artifact_graph
 from plumbline.memory.decisions import propose
 from plumbline.memory.replay import seek
 from plumbline.snapshot import build_meta, snapshot
@@ -126,6 +127,13 @@ def create_app() -> FastAPI:
             snap = snapshot(connect(), at_ms, list(_manual))
             _cache[(at_ms, len(_manual))] = snap
             return {"decision": proposal.decision_id, "snapshot": snap}
+
+    @app.get("/api/graph")
+    def get_graph(artifact: str) -> dict:
+        data = artifact_graph(connect(), artifact)
+        if not data["nodes"]:
+            raise HTTPException(404, "no dependency graph for that artifact (it has no parsed lockfile)")
+        return data
 
     @app.get("/api/receipt")
     def get_receipt(advisory: str, artifact: str, at: str) -> dict:

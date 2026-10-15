@@ -28,6 +28,8 @@ def verdict_view(advisory: str, at_ms: int, v: ArtifactVerdict, with_receipt: bo
         "assumptions": [{"id": a.fact_id, "kind": a.kind, "key": a.key} for a in r.assumptions],
         "path": list(v.path) if v.path else None,
         "hops": v.hops,
+        "path_keys": list(v.path_keys) if v.path_keys else None,
+        "pulled_by": list(v.pulled_by),
         "receipt": make_receipt(advisory, at_ms, v)["hash"] if with_receipt and r.verdict == "EXPOSED" else None,
     }
 

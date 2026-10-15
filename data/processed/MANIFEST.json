@@ -11,6 +11,7 @@
  "lockgraph/planted__billing-worker.jsonl": "4fb545a91a9fe4f72ca6e21ae7c384a8353902fb4e137b990b5d7ef6a6bf10c0",
  "lockgraph/planted__gateway.jsonl": "5f67fc03eb077525dd9b39789fcc0a7a9a079ac80a2271f1bbe7b9320a4208b1",
  "lockgraph/planted__orders-api.jsonl": "1085d02a918bd0187ab8a38079902b09dc333dae0fb17fd50c8e9efc18835799",
+ "lockgraph/planted__storefront.jsonl": "6cb75c7363c15fff8fc48861890ba2c6db7300ebd735f69780e6e828cd1bde6d",
  "lockgraph/serverless__serverless.jsonl": "b96669f87b37b1ddc8b7aec6d27d37a3c9221b99459c36083b0e6d573e7d1988",
  "lockgraph/socketio__socket.io.jsonl": "4a7ac1f27b43b6575580fbc0ad00805a8f92c6766e8057988628a412b082825e",
  "lockgraph/winstonjs__winston.jsonl": "10d2c023d4bdbb4c9498c89134aefe8bc178486711022b32d04c1572b9e703cb"

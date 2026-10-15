@@ -56,7 +56,7 @@ def test_tool_call_over_mcp_returns_the_policy_verdict():
             return json.loads("".join(x.text for x in res.content))
 
     data = run(go())
-    assert data["counts"] == {"EXPOSED": 1, "CLEARED": 13, "UNKNOWN": 3}
+    assert data["counts"] == {"EXPOSED": 2, "CLEARED": 13, "UNKNOWN": 3}
     assert data["rows"][0]["artifact"] == "planted/gateway" and data["rows"][0]["receipt"]
 
 
@@ -119,7 +119,7 @@ def test_model_backend_selects_tools_over_mcp_and_answers():
     r = run(ask("What is exposed?", BEFORE, settings=settings, backend="llm", transport=transport))
     assert r.backend == "llm" and r.model == "m"
     assert [c.name for c in r.calls] == ["triage_advisory"] and r.calls[0].error is None
-    assert r.answer == "1 service(s) exposed." and seen["requests"] == 2
+    assert r.answer == "2 service(s) exposed." and seen["requests"] == 2
 
 
 def test_model_backend_requires_configuration():

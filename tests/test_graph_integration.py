@@ -22,12 +22,12 @@ def graph():
 
 def test_only_planted_artifacts_lock_a_malicious_version(graph):
     rows = run_named(graph, "q1_exposure_base").result_set
-    assert {r[2] for r in rows} == {"planted/orders-api", "planted/gateway"}
+    assert {r[2] for r in rows} == {"planted/orders-api", "planted/gateway", "planted/storefront"}
     assert {r[0] for r in rows} == {"MAL-2026-11523", "MAL-2026-11524", "MAL-2026-11559", "MAL-2026-11561"}
 
 
 def test_explain_path_follows_the_dependency_chain(graph):
-    chain, hops = run_named(
+    chain, hops, _keys = run_named(
         graph, "q2_explain_path", {"artifact": "planted/gateway", "purl": "pkg:npm/keyv@6.0.0"}
     ).result_set[0]
     assert hops == 3
@@ -35,7 +35,7 @@ def test_explain_path_follows_the_dependency_chain(graph):
 
 
 def test_direct_dependency_has_a_zero_length_path(graph):
-    _, hops = run_named(
+    _, hops, _keys = run_named(
         graph, "q2_explain_path", {"artifact": "planted/orders-api", "purl": "pkg:npm/cache-manager@7.2.10"}
     ).result_set[0]
     assert hops == 0

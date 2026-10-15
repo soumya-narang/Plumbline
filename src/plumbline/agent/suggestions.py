@@ -5,5 +5,7 @@ SUGGESTIONS = [
     "Why is the edge gateway exposed?",
     "Is nest affected by the cache-manager incident?",
     "Is eslint affected by the keyv compromise?",
+    "What should we upgrade first?",
+    "Which packages does the storefront lean on most?",
     "Is anything we already decided no longer valid?",
 ]

@@ -33,9 +33,10 @@ def test_not_visible_before_publication(graph):
 
 
 def test_exactly_one_artifact_is_exposed_per_advisory(graph):
-    for adv, expected in (("MAL-2026-11523", "planted/orders-api"), ("MAL-2026-11524", "planted/gateway")):
-        exposed = [v.artifact for v in triage_advisory(graph, adv, T).verdicts if v.result.verdict == "EXPOSED"]
-        assert exposed == [expected]
+    expected = {"MAL-2026-11523": {"planted/orders-api"}, "MAL-2026-11524": {"planted/gateway", "planted/storefront"}}
+    for adv, artifacts in expected.items():
+        exposed = {v.artifact for v in triage_advisory(graph, adv, T).verdicts if v.result.verdict == "EXPOSED"}
+        assert exposed == artifacts
 
 
 def test_missing_lockfiles_are_unknown_not_cleared(graph):

@@ -27,6 +27,8 @@ class ArtifactVerdict:
     result: Result
     path: tuple[str, ...] | None  # shortest chain from a direct dependency to the affected package
     hops: int | None
+    path_keys: tuple[str, ...] | None = None  # the same chain as lockfile keys, to light it up in the graph view
+    pulled_by: tuple[str, ...] = ()  # direct dependencies that pull an affected version in: what to bump
 
 
 @dataclass(frozen=True)
@@ -66,13 +68,21 @@ def _locked_by_artifact(graph: Graph, advisory: AdvisoryState) -> dict[str, tupl
     return {a: tuple(v) for a, v in out.items()}
 
 
-def _shortest_path(graph: Graph, artifact: str, hits: tuple[Locked, ...]) -> tuple[tuple[str, ...] | None, int | None]:
-    best: tuple[tuple[str, ...], int] | None = None
+def _shortest_path(graph: Graph, artifact: str, hits: tuple[Locked, ...]):
+    best: tuple[tuple[str, ...], int, tuple[str, ...]] | None = None
     for hit in hits:
         rows = run_named(graph, "q2_explain_path", {"artifact": artifact, "purl": hit.purl}).result_set
         if rows and (best is None or rows[0][1] < best[1]):
-            best = (tuple(rows[0][0]), rows[0][1])
-    return (best[0], best[1]) if best else (None, None)
+            best = (tuple(rows[0][0]), rows[0][1], tuple(rows[0][2]))
+    return best if best else (None, None, None)
+
+
+def _pulled_by(graph: Graph, artifact: str, hits: tuple[Locked, ...]) -> tuple[str, ...]:
+    names: set[str] = set()
+    for hit in hits:
+        for name, version in run_named(graph, "triage/via_direct", {"artifact": artifact, "purl": hit.purl}).result_set:
+            names.add(f"{name}@{version}")
+    return tuple(sorted(names))
 
 
 def triage_advisory(graph: Graph, advisory_id: str, at_ms: int) -> TriageReport | None:
@@ -85,8 +95,10 @@ def triage_advisory(graph: Graph, advisory_id: str, at_ms: int) -> TriageReport 
     for artifact, kind, lock_state, lock_sha, service, tier, exposure in run_named(graph, "triage/artifacts").result_set:
         state = ArtifactState(artifact, lock_state, lock_sha, locks.get(artifact, ()))
         result = evaluate(state, advisory)
-        path, hops = _shortest_path(graph, artifact, result.evidence) if result.verdict == "EXPOSED" else (None, None)
-        verdicts.append(ArtifactVerdict(artifact, kind, service, tier, exposure, lock_sha, result, path, hops))
+        exposed = result.verdict == "EXPOSED"
+        path, hops, keys = _shortest_path(graph, artifact, result.evidence) if exposed else (None, None, None)
+        pulled = _pulled_by(graph, artifact, result.evidence) if exposed else ()
+        verdicts.append(ArtifactVerdict(artifact, kind, service, tier, exposure, lock_sha, result, path, hops, keys, pulled))
     verdicts.sort(key=lambda v: (
         _ORDER[v.result.verdict],
         0 if v.exposure == "internet" else 1,  # priority orders EXPOSED rows; it never changes a verdict

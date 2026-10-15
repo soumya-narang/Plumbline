@@ -71,6 +71,8 @@ _REOPEN = re.compile(r"reopen|stale|invalidat|changed|no longer|reconsider|still
 _DECISIONS = re.compile(r"\bdecision|decided|approved|accepted risk", re.IGNORECASE)
 _PROPOSE = re.compile(r"propose|should we approve|approve|sign off|what would you decide", re.IGNORECASE)
 _EXPLAIN = re.compile(r"why|path|how|explain|chain|evidence|prove", re.IGNORECASE)
+_FIX = re.compile(r"upgrade|bump|fix first|fix-first|patch first|remediat|update first|what should we (fix|do)", re.IGNORECASE)
+_CRITICAL = re.compile(r"critical|central|lean on|depends? on most|most important|pagerank|hub|concentrat|riskiest", re.IGNORECASE)
 
 
 def _pick_advisory(question: str, advisories: list[dict]) -> str | None:
@@ -127,6 +129,31 @@ async def run_planner(client: Client, run: AgentRun) -> None:
                          f"It is now {ex.get('verdict', '?')}"
                          + (f" via {_fmt_path(ex.get('path'))}." if ex.get("path")
                             else f" ({ex.get('evidence') and ', '.join(e['purl'] for e in ex['evidence'])})."))
+    elif _FIX.search(q):
+        advisory = _pick_advisory(q, advisories)
+        if advisory is None:
+            run.answer = f"No advisory has been published as of {run.at}, so there is nothing to fix yet."
+            return
+        res = await call_tool(client, run, "fix_first", {"advisory": advisory, "at": run.at})
+        bump = res.get("bump", [])
+        if not bump:
+            lines.append(f"No artifact is exposed to {advisory} as of {run.at}, so nothing needs upgrading.")
+        else:
+            top = bump[0]
+            lines.append(f"Upgrade {top['package']} first: it pulls the affected versions into {_plural(top['artifacts'], 'artifact')} "
+                         f"({', '.join(top['in_artifacts'])}).")
+            for other in bump[1:]:
+                lines.append(f"Then {other['package']} ({', '.join(other['in_artifacts'])}).")
+    elif _CRITICAL.search(q):
+        advisory = _pick_advisory(q, advisories)
+        tri = await call_tool(client, run, "triage_advisory", {"advisory": advisory, "at": run.at, "include_cleared": True}) if advisory else {}
+        target = _pick_artifact(q, tri.get("rows", [])) or "planted/storefront"
+        res = await call_tool(client, run, "critical_dependencies", {"artifact": target, "limit": 5})
+        pk = res.get("packages", [])
+        lines.append(
+            f"{target} leans most on {', '.join(p['package'] for p in pk)} (PageRank over its dependency graph). "
+            "A compromise of any of these reaches the largest part of its tree."
+            if pk else f"No dependency graph is available for {target}.")
     elif _DECISIONS.search(q) and not _PROPOSE.search(q):
         res = await call_tool(client, run, "list_decisions", {})
         ds = res.get("decisions", [])

@@ -89,6 +89,22 @@ def propose_decision(advisory: str, artifact: str, at: str) -> dict:
     }
 
 
+def fix_first(advisory: str, at: str) -> dict:
+    """Rank the direct dependencies to upgrade first: which ones drag the affected versions into the most artifacts."""
+    rows = run_named(graph(), "q6_fix_first", {"advisory": advisory, "at_ms": to_ms(at)}).result_set
+    return {"advisory": advisory, "at": at, "bump": [
+        {"package": f"{name}@{version}", "artifacts": n, "in_artifacts": sorted(where)} for name, version, n, where in rows]}
+
+
+def critical_dependencies(artifact: str, limit: int = 8) -> dict:
+    """The packages an artifact leans on most, by PageRank over its dependency graph. A compromise of a highly ranked
+    package reaches the most of the tree."""
+    rows = run_named(graph(), "q7_critical_dependencies",
+                     {"prefix": f"{artifact}::", "limit": max(1, min(int(limit), 25))}).result_set
+    return {"artifact": artifact, "ranked_by": "PageRank over REQUIRES", "packages": [
+        {"package": f"{name}@{version}", "score": round(score, 6)} for name, version, score in rows]}
+
+
 def list_decisions() -> dict:
     """List recorded decisions with their status (accepted or reopened)."""
     from plumbline.memory.decisions import list_decisions as _list
@@ -103,5 +119,7 @@ TOOLS = {
     "explain_path": explain_path,
     "reopen_check": reopen_check,
     "propose_decision": propose_decision,
+    "fix_first": fix_first,
+    "critical_dependencies": critical_dependencies,
     "list_decisions": list_decisions,
 }

@@ -168,5 +168,15 @@
   "lock_state": "present",
   "lockfile_sha256": "90cf0355048e5659ec20090543bb3deaa05ecf784082746be36ee1fe3fe3c30b",
   "note": "hand-authored fixture; dependency edges below the malicious packages are illustrative"
+ },
+ {
+  "id": "planted/storefront",
+  "kind": "planted",
+  "sha": null,
+  "committed_at": null,
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "6668a38ac458048f04dd787d85ea013da838747f464b6f05ea0673430b24b653",
+  "note": "hand-authored fixture; dependency edges below the malicious packages are illustrative"
  }
 ]
