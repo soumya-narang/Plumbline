@@ -63,7 +63,7 @@ def load_all(graph_name: str = "plumbline") -> dict[str, int]:
     counts["advisories"] = _run_batched(graph, "load/advisory", load_advisories())
     counts["artifacts"] = _run_batched(graph, "load/artifact", (
         {"id": e.id, "kind": e.kind, "sha": e.sha, "committed_at": e.committed_at, "lockfile": e.lockfile,
-         "lock_state": e.lock_state, "synthetic": e.kind == "planted"} for e in fleet))
+         "lock_state": e.lock_state, "lock_sha256": e.lockfile_sha256, "synthetic": e.kind == "planted"} for e in fleet))
     counts["services"] = _run_batched(graph, "load/service_overlay", _overlay_rows(fleet))
 
     deps = edges = members = 0

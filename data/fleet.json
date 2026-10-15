@@ -140,6 +140,16 @@
   "note": "no lockfile at this commit"
  },
  {
+  "id": "planted/billing-worker",
+  "kind": "planted",
+  "sha": null,
+  "committed_at": null,
+  "lockfile": "package-lock.json",
+  "lock_state": "present",
+  "lockfile_sha256": "01975f84b92d6ed318903bfc456a700fae5dfa4db58998a97df208cfebf5aa5e",
+  "note": "hand-authored fixture; dependency edges below the malicious packages are illustrative"
+ },
+ {
   "id": "planted/gateway",
   "kind": "planted",
   "sha": null,

@@ -136,7 +136,7 @@ def pin_fleet() -> list[FleetEntry]:
             entries.append(entry)
             print(f"{repo:30} {entry.lock_state:12} {entry.lockfile or '-':20} {(entry.sha or '-')[:10]}")
     entries.extend(_planted_entries())
-    FLEET_PATH.write_text(json.dumps([asdict(e) for e in entries], indent=1) + "\n", encoding="utf-8")
+    _write_fleet(entries)
     return entries
 
 
@@ -149,3 +149,15 @@ def verify_lockfile(entry: FleetEntry) -> bytes:
     if hashlib.sha256(data).hexdigest() != entry.lockfile_sha256:
         raise ValueError(f"hash mismatch for {entry.id}")
     return data
+
+
+def refresh_planted() -> list[FleetEntry]:
+    """Recompute only the planted entries (new or edited fixtures), keeping the pinned real repositories."""
+    entries = [e for e in load_fleet() if e.kind == "real"] + _planted_entries()
+    _write_fleet(entries)
+    return entries
+
+
+def _write_fleet(entries: list[FleetEntry]) -> None:
+    payload = json.dumps([asdict(e) for e in entries], indent=1)
+    FLEET_PATH.write_text(payload + "\n", encoding="utf-8")

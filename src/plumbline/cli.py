@@ -7,13 +7,13 @@ import json
 
 from plumbline.graph.client import connect, run_named
 from plumbline.graph.loader import load_all
-from plumbline.ingest.fleet import pin_fleet
+from plumbline.ingest.fleet import pin_fleet, refresh_planted
 from plumbline.ingest.lockgraph import build_all
 from plumbline.ingest.osv import fetch_advisories
 
 
-def _cmd_pin_fleet(_: argparse.Namespace) -> None:
-    pin_fleet()
+def _cmd_pin_fleet(args: argparse.Namespace) -> None:
+    refresh_planted() if args.planted_only else pin_fleet()
 
 
 def _cmd_build_data(_: argparse.Namespace) -> None:
@@ -37,7 +37,8 @@ def _cmd_query(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="plumbline")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("pin-fleet", help="pin repositories to the incident time and record lockfile hashes")
+    pin = sub.add_parser("pin-fleet", help="pin repositories to the incident time and record lockfile hashes")
+    pin.add_argument("--planted-only", action="store_true", help="only refresh the hand-authored fixtures")
     sub.add_parser("build-data", help="fetch advisories and write processed JSONL")
     sub.add_parser("load", help="rebuild the FalkorDB graph from processed JSONL")
     q = sub.add_parser("query", help="run a named query from queries/")
