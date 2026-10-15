@@ -7,8 +7,8 @@ Everything below is produced by `python -m plumbline load` from the JSONL under 
 
 | Label | Key | Other properties | Source |
 |---|---|---|---|
-| `Artifact` | `id` (`owner/repo` or `planted/<name>`) | `kind`, `sha`, `committed_at`, `lockfile`, `lock_state`, `synthetic` | `data/fleet.json` |
-| `LockedDep` | `id` (`<artifact>::<lockfile key>`) | `key`, `direct`, `dev`, `optional`, `workspace`, `depth` | parsed lockfile |
+| `Artifact` | `id` (`owner/repo` or `planted/<name>`) | `kind`, `sha`, `committed_at`, `lockfile`, `lock_state`, `lock_sha256`, `synthetic` | `data/fleet.json` |
+| `LockedDep` | `id` (`<artifact>::<lockfile key>`) | `key`, `name`, `version`, `direct`, `dev`, `optional`, `workspace`, `depth` | parsed lockfile |
 | `PackageVersion` | `purl` | `name`, `version`, `ecosystem` | lockfiles and advisories |
 | `Advisory` | `id` (OSV id) | `kind`, `package`, `summary`, `published`, `published_ms` | OSV |
 | `Service` | `id` (`svc:<name>`) | `name`, `tier`, `declared` | `data/overlay.json` (declared) |
@@ -44,7 +44,7 @@ Unique constraints on the first four.
 
 A decision records the facts it rests on as `ASSUMES` edges:
 
-- `lock_snapshot:<hash>`: the lockfile the verdict was derived from (every decision has one).
+- `lock_snapshot:<hash>`: the lockfile the verdict was derived from (every EXPOSED and CLEARED decision has one; UNKNOWN has none because there is no usable lockfile).
 - `not_affected:<advisory>:<purl>`: for each version of the advisory's package that the artifact locks, that the
   advisory does not name it. A CLEARED decision carries one per locked version.
 

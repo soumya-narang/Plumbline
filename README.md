@@ -15,7 +15,7 @@ The replay is a real event: on 2026-08-04 a compromised maintainer account publi
 Details and sources: [docs/incident.md](docs/incident.md).
 
 The fleet is 14 public repositories pinned to their commit at the minute before the first malicious release, plus
-two clearly labelled planted fixtures. Result so far: no real repository locked a malicious version, and `nestjs/nest`
+three clearly labelled planted fixtures. Result so far: no real repository locked a malicious version, and `nestjs/nest`
 sat one patch below one (`cache-manager@7.2.9` against malicious `7.2.10`).
 
 ## Verdicts
