@@ -1,0 +1,1 @@
+{"artifact":"planted/billing-worker","edges":[[0,2]],"nodes":[["node_modules/@acme/queue-client","@acme/queue-client","3.2.0",1,true],["node_modules/pino","pino","9.5.0",1,true],["node_modules/keyv","keyv","6.0.1",2,false]]}

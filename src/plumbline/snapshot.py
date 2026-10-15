@@ -79,12 +79,32 @@ def snapshot(graph: Graph, at_ms: int, extra: list[dict] | None = None) -> dict:
     }
 
 
+def graph_stats(graph: Graph) -> dict:
+    """Plain counts of what the graph holds, shown on the site."""
+
+    def one(query: str) -> int:
+        return graph.ro_query(query).result_set[0][0]
+
+    return {
+        "artifacts": one("MATCH (a:Artifact) RETURN count(a)"),
+        "dependencies": one("MATCH (d:LockedDep) WHERE d.workspace IS NULL RETURN count(d)"),
+        "edges": one("MATCH (:LockedDep)-[e:REQUIRES]->(:LockedDep) RETURN count(e)"),
+        "advisories": one("MATCH (a:Advisory) RETURN count(a)"),
+    }
+
+
 def build_meta(graph: Graph) -> dict:
     """What the UI needs before it can draw anything. Shared by the live API and the static export."""
     return {
         "incident": load_incident(),
         "timeline": timeline(graph),
         "suggestions": SUGGESTIONS,
-        "queries": {"q2": read_query_text("q2_explain_path"), "q5": read_query_text("q5_reopen_check")},
+        "queries": {
+            "q2": read_query_text("q2_explain_path"),
+            "q5": read_query_text("q5_reopen_check"),
+            "q6": read_query_text("q6_fix_first"),
+            "q7": read_query_text("q7_critical_dependencies"),
+        },
+        "stats": graph_stats(graph),
         "repo": os.getenv("PLUMBLINE_REPO_URL") or None,
     }

@@ -3,12 +3,16 @@ import { createAgent } from "./agent.js";
 import { renderDecisions } from "./decisions.js";
 import { renderEvidence } from "./evidence.js";
 import { renderFleet, rowKey } from "./fleet.js";
-import { VERDICT_RANK, esc, factView, plural } from "./format.js";
+import { VERDICT_RANK, attachClouds, esc, factView, plural } from "./format.js";
+import { renderGraphTab } from "./graphtab.js";
+import { initHero } from "./hero.js";
+import { initHood } from "./hood.js";
 import { createTimeline } from "./timeline.js";
 
 const state = { meta: null, snap: null, stop: null, sel: { advisory: null, artifact: null }, tab: "evidence", pinnedTab: false };
 const $ = (id) => document.getElementById(id);
-const TABS = ["evidence", "decisions", "ask"];
+const TABS = ["evidence", "graph", "decisions", "ask"];
+const pinned = { artifact: new URLSearchParams(location.search).get("artifact") };
 
 function toast(html) {
   const el = $("toast");
@@ -24,6 +28,7 @@ function setTab(name) {
     $(`tab-${t}`).setAttribute("aria-selected", String(t === name));
     $(`panel-${t}`).hidden = t !== name;
   });
+  if (name === "graph" && state.snap) renderGraphTab(state.snap, state.sel);
 }
 
 /** Keep the user's selection if it still exists; otherwise pick the most urgent thing on screen. */
@@ -75,6 +80,7 @@ function render(changed = new Set()) {
   renderEvidence(snap, sel, ctx, { onApprove, onVerify });
   renderDecisions(snap, sel, (advisory, artifact) => { state.sel = { advisory, artifact }; setTab("evidence"); render(); });
   renderNotice(snap);
+  if (state.tab === "graph") renderGraphTab(snap, sel);
 }
 
 async function onApprove(advisory, artifact, approver) {
@@ -109,6 +115,11 @@ async function onStop(stop) {
     const hit = adv?.rows.find((r) => r.verdict === "EXPOSED");
     if (adv && hit) state.sel = { advisory: adv.id, artifact: hit.artifact };
   }
+  const pin = pinned.artifact;
+  pinned.artifact = null; // a link's ?artifact= applies to the first view only
+  if (pin) {
+    for (const a of snap.advisories) if (a.rows.some((r) => r.artifact === pin && r.verdict === "EXPOSED")) { state.sel = { advisory: a.id, artifact: pin }; break; }
+  }
   render(changedRows(prev, snap));
 }
 
@@ -120,13 +131,20 @@ function initTheme() {
   const wanted = new URLSearchParams(location.search).get("theme") ?? stored;
   if (wanted === "light" || wanted === "dark") root.dataset.theme = wanted;
   const effective = () => root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  const paint = () => { btn.textContent = effective() === "dark" ? "Switch to light" : "Switch to dark"; };
+  const paint = () => { btn.textContent = effective() === "dark" ? "Light" : "Dark"; };
   btn.addEventListener("click", () => {
     root.dataset.theme = effective() === "dark" ? "light" : "dark";
     try { localStorage.setItem("plumbline.theme", root.dataset.theme); } catch { /* storage unavailable */ }
     paint();
   });
   paint();
+}
+
+/** The nav turns solid once the hero has scrolled away. */
+function initNav() {
+  const nav = $("nav");
+  const hero = document.querySelector(".hero");
+  new IntersectionObserver(([entry]) => nav.classList.toggle("solid", !entry.isIntersecting), { rootMargin: "-72px 0px 0px 0px" }).observe(hero);
 }
 
 function initTabs() {
@@ -143,8 +161,12 @@ function initTabs() {
 async function boot() {
   initTheme();
   initTabs();
+  initNav();
+  attachClouds(document.querySelector(".how"));
   const meta = await api.init();
   state.meta = meta;
+  initHero();
+  initHood(meta);
   $("incident-name").textContent = meta.incident.name;
   const live = api.isLive();
   const mode = $("badge-mode");

@@ -30,11 +30,16 @@ Verdicts come only from deterministic, unit-tested code (`src/plumbline/policy`)
 artifact locks, what an advisory names, and the dependency path between them. A language model will select tools and
 phrase answers; it can never produce or change a verdict.
 
-![Plumbline at the moment a decision reopens](docs/img/ui-light.png)
+![The Plumbline home page: the real dependency graph with the poisoned path hanging as a plumb line](docs/img/site-hero.png)
 
-A timeline drawn to time scale sits above a list of artifacts and one detail pane (Evidence, Decisions, Ask). The evidence
-path hangs from the service like a plumb line, ending in a bob at the malicious version. When a decision reopens, a revision
-cloud marks the one assumption that stopped being true. A dark theme follows the system setting.
+The site opens on the real dependency tree of a 687-package service, with the poisoned path pinned to one vertical line, a plumb
+line, and a bob at the malicious version. Below it, a plain explanation, then the survey itself:
+
+![The survey at the moment a decision reopens](docs/img/site-survey.png)
+
+A timeline drawn to time scale sits above a list of artifacts and a detail pane (Evidence, Graph, Decisions, Ask). The Graph tab
+draws an artifact's whole dependency tree with hover-to-trace. When a decision reopens, a revision cloud marks the one assumption
+that stopped being true. The page ends with the real Cypher and measured graph sizes. A dark theme follows the system setting.
 
 ## Try it
 
@@ -45,7 +50,7 @@ python -m plumbline serve            # http://127.0.0.1:8000
 
 Step through the incident with the timeline (or press play). The page also runs with no server from recorded snapshots;
 see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
-exposing six read-only tools. Approving a decision is a human action and is deliberately not a tool.
+exposing eight read-only tools, including a fleet-wide fix-first query and PageRank. Approving a decision is a human action and is deliberately not a tool.
 
 ## What it does from the terminal
 

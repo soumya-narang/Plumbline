@@ -4,80 +4,167 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Plumbline</title>
-  <meta name="description" content="Replay a real npm supply-chain incident: who was exposed, why, and which earlier decisions no longer hold.">
+  <meta name="description" content="When a package is poisoned, Plumbline traces the dependency path to every service it reaches, says plainly when it cannot know, and reopens past decisions the moment an assumption breaks.">
   <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23141d27'/%3E%3Cpath d='M16 4v15' stroke='%23e7edf3' stroke-width='2'/%3E%3Ccircle cx='16' cy='24' r='5' fill='%23ff7d57'/%3E%3C/svg%3E">
-  <link rel="preload" href="fonts/barlow-condensed-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23061620'/%3E%3Cpath d='M16 4v15' stroke='%23d9eef0' stroke-width='2'/%3E%3Ccircle cx='16' cy='24' r='5' fill='%23ff6b3d'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip" href="#detail">Skip to the detail</a>
+  <a class="skip" href="#survey">Skip to the survey</a>
 
-  <div class="app">
-    <header class="top">
-      <div class="brand">
-        <svg viewBox="0 0 20 28" width="13" height="19" aria-hidden="true"><path d="M10 0v17" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="10" cy="22" r="5" class="bob-fill"/></svg>
-        <span>Plumbline</span>
+  <header class="nav" id="nav">
+    <a class="brand" href="#top" aria-label="Plumbline, back to the top">
+      <svg viewBox="0 0 20 28" width="13" height="19" aria-hidden="true"><path d="M10 0v17" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="10" cy="22" r="5" class="bob-fill"/></svg>
+      <span>Plumbline</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#survey">The survey</a>
+      <a href="#hood">The graph</a>
+      <button type="button" id="theme-btn" class="nav-theme" aria-label="Switch between light and dark themes"></button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <canvas id="hero-graph" aria-hidden="true"></canvas>
+      <div class="hero-shade" aria-hidden="true"></div>
+      <div class="wrap hero-inner">
+        <p class="eyebrow">Supply-chain exposure, answered from a graph</p>
+        <h1 id="hero-title">Don't guess who's exposed. <em>Trace it.</em></h1>
+        <p class="lede">When a package is poisoned, Plumbline follows the dependency path to every service it reaches, says plainly when it
+          can't know, and reopens past decisions the moment an assumption breaks.</p>
+        <div class="cta">
+          <a class="btn primary" href="#survey">Replay the 4 August incident</a>
+          <a class="btn-link" href="#how">See how it works</a>
+        </div>
+        <dl class="proof">
+          <div><dt>6</dt><dd>poisoned releases in 25 minutes</dd></div>
+          <div><dt>687</dt><dd>packages in the demo storefront, one path to the poison</dd></div>
+          <div><dt>3</dt><dd>verdicts: exposed, cleared, not determined</dd></div>
+        </dl>
+        <p class="hero-note">A real incident and real lockfiles. Four fixtures are planted and labelled.</p>
       </div>
-      <p class="status">
-        <span id="badge-mode"></span>
-        <span id="badge-agent"></span>
-        <button type="button" id="theme-btn" class="textbtn" aria-label="Switch between light and dark themes"></button>
-        <a id="repo-link" href="#" hidden>Source</a>
-      </p>
-    </header>
-
-    <section class="intro" aria-label="Incident">
-      <h1 id="incident-name">Loading the incident</h1>
-      <p>A real npm supply-chain incident on 4 August 2026. Step through it to see who was exposed, how that is known,
-        and which earlier decisions no longer hold.</p>
     </section>
 
-    <section class="timeline card" aria-label="Timeline">
-      <div class="tl-row">
-        <div class="tl-controls">
-          <button id="tl-prev" class="btn ghost" type="button" aria-label="Previous event">Previous</button>
-          <button id="tl-play" class="btn ghost" type="button" aria-label="Play the incident">Play</button>
-          <button id="tl-next" class="btn ghost" type="button" aria-label="Next event">Next</button>
+    <section class="band how" id="how" aria-labelledby="how-title">
+      <div class="wrap">
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-title">Three ideas, one graph</h2>
+        <div class="steps">
+          <article class="step">
+            <svg viewBox="0 0 240 150" class="ill" role="img" aria-label="A line hanging through dependencies, ending in a red bob">
+              <path d="M40 14V104" class="ill-line"/><path d="M28 14H52" class="ill-bar"/>
+              <circle cx="40" cy="44" r="5" class="ill-joint"/><circle cx="40" cy="76" r="5" class="ill-joint"/><circle cx="40" cy="108" r="9" class="ill-bob"/>
+              <text x="64" y="18" class="ill-t">service</text><text x="64" y="48" class="ill-t mono">http-client</text>
+              <text x="64" y="80" class="ill-t mono">cacheable/net</text><text x="64" y="112" class="ill-t mono bad">keyv@6.0.0</text>
+            </svg>
+            <h3>Follow the path</h3>
+            <p>Every exposed service comes with the exact chain from its own dependency to the poisoned version, found with a shortest-path query, and a receipt you can re-derive.</p>
+          </article>
+          <article class="step">
+            <div class="ill ill-notes" role="img" aria-label="Two assumptions, one crossed out and circled in a revision cloud">
+              <p>1. The lockfile has not changed</p>
+              <p class="broken" data-cloud><span class="strike mono">keyv@6.0.1 is not on the advisory</span></p>
+              <p class="dim">No longer true since 12:45</p>
+            </div>
+            <h3>Say what you assumed</h3>
+            <p>Clearing a service rests on facts: the lockfile hasn't changed, this version isn't on the advisory. Plumbline stores each fact next to the decision that leans on it.</p>
+          </article>
+          <article class="step">
+            <svg viewBox="0 0 240 150" class="ill" role="img" aria-label="Five decisions, one of them turned red">
+              <g class="ill-dec"><circle cx="30" cy="56" r="11"/><circle cx="76" cy="56" r="11"/><circle cx="122" cy="56" r="11" class="hot"/><circle cx="168" cy="56" r="11"/><circle cx="214" cy="56" r="11"/></g>
+              <path d="M122 80v22" class="ill-line thin"/><path d="M116 96l6 8 6-8" class="ill-line thin" fill="none"/>
+              <text x="122" y="128" class="ill-t" text-anchor="middle">one reopens, four stay decided</text>
+            </svg>
+            <h3>Reopen only what broke</h3>
+            <p>When a fact stops being true, one query finds the decisions that leaned on it. Everything else stays decided, so nothing is re-reviewed by habit.</p>
+          </article>
         </div>
-        <p class="tl-now"><span id="tl-clock" class="clock">--:--:--</span><span class="muted"> UTC</span> <span id="tl-label" class="tl-label"></span></p>
-        <p class="legend" aria-hidden="true"><i class="m rel"></i> malicious release <i class="m dec"></i> decision <i class="m tri"></i> hypothetical</p>
       </div>
-      <div id="ruler" class="ruler" role="group" aria-label="Events, drawn to time scale"></div>
     </section>
 
-    <div id="notice"></div>
+    <section class="band survey" id="survey" aria-labelledby="survey-title">
+      <div class="wrap">
+        <p class="eyebrow">The survey <span class="status"><span id="badge-mode"></span><span id="badge-agent"></span><a id="repo-link" href="#" hidden>Source</a></span></p>
+        <h2 id="survey-title">Replay the incident</h2>
+        <p class="survey-lede"><strong id="incident-name">Loading the incident</strong>. Step through the first hour. Choose any artifact to see why it has its verdict.</p>
 
-    <main class="layout">
-      <section class="card list" aria-labelledby="h-artifacts">
-        <header class="card-head">
-          <h2 id="h-artifacts">Artifacts</h2>
-          <label class="select-wrap"><span class="sr">Advisory</span><select id="adv-select"></select></label>
-        </header>
-        <div id="counts" class="counts"></div>
-        <div id="fleet-list"></div>
-      </section>
+        <div class="stage">
+          <div class="timeline" aria-label="Timeline">
+            <div class="tl-row">
+              <div class="tl-controls">
+                <button id="tl-prev" class="btn ghost" type="button" aria-label="Previous event">Previous</button>
+                <button id="tl-play" class="btn ghost" type="button" aria-label="Play the incident">Play</button>
+                <button id="tl-next" class="btn ghost" type="button" aria-label="Next event">Next</button>
+              </div>
+              <p class="tl-now"><span id="tl-clock" class="clock">--:--:--</span><span class="muted"> UTC</span> <span id="tl-label" class="tl-label"></span></p>
+              <p class="legend" aria-hidden="true"><i class="m rel"></i> malicious release <i class="m dec"></i> decision <i class="m tri"></i> hypothetical</p>
+            </div>
+            <div id="ruler" class="ruler" role="group" aria-label="Events, drawn to time scale"></div>
+          </div>
 
-      <section class="card detail" id="detail" aria-label="Detail" tabindex="-1">
-        <div class="tabs" role="tablist" aria-label="Detail views">
-          <button type="button" role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="true">Evidence</button>
-          <button type="button" role="tab" id="tab-decisions" aria-controls="panel-decisions" aria-selected="false">Decisions <span id="dec-count" class="pill"></span></button>
-          <button type="button" role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="false">Ask the agent</button>
+          <div id="notice"></div>
+
+          <div class="layout">
+            <section class="list" aria-labelledby="h-artifacts">
+              <header class="list-head">
+                <h3 id="h-artifacts">Artifacts</h3>
+                <label class="select-wrap"><span class="sr">Advisory</span><select id="adv-select"></select></label>
+              </header>
+              <div id="counts" class="counts"></div>
+              <div id="fleet-list"></div>
+            </section>
+
+            <section class="detail" id="detail" aria-label="Detail" tabindex="-1">
+              <div class="tabs" role="tablist" aria-label="Detail views">
+                <button type="button" role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="true">Evidence</button>
+                <button type="button" role="tab" id="tab-graph" aria-controls="panel-graph" aria-selected="false">Graph</button>
+                <button type="button" role="tab" id="tab-decisions" aria-controls="panel-decisions" aria-selected="false">Decisions <span id="dec-count" class="pill"></span></button>
+                <button type="button" role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="false">Ask the agent</button>
+              </div>
+              <div id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" class="panel"><div id="evidence-body"></div></div>
+              <div id="panel-graph" role="tabpanel" aria-labelledby="tab-graph" class="panel graph-panel" hidden><div id="graph-body"></div></div>
+              <div id="panel-decisions" role="tabpanel" aria-labelledby="tab-decisions" class="panel" hidden><div id="decisions"></div></div>
+              <div id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" class="panel" hidden><div id="agent"></div></div>
+            </section>
+          </div>
         </div>
-        <div id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" class="panel"><div id="evidence-body"></div></div>
-        <div id="panel-decisions" role="tabpanel" aria-labelledby="tab-decisions" class="panel" hidden><div id="decisions"></div></div>
-        <div id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" class="panel" hidden><div id="agent"></div></div>
-      </section>
-    </main>
 
-    <footer class="fine">
-      <span><i class="mark EXPOSED"></i> Exposed</span>
-      <span><i class="mark UNKNOWN"></i> Not determined</span>
-      <span><i class="mark CLEARED"></i> Cleared, relative to stated assumptions</span>
-      <p>Services and their exposure are declared, not discovered. Verdicts come from deterministic code, never from a model.
-        Planted fixtures and the hypothetical event are labelled wherever they appear.</p>
-    </footer>
-  </div>
+        <p class="fine"><span><i class="mark EXPOSED"></i> Exposed</span><span><i class="mark UNKNOWN"></i> Not determined</span><span><i class="mark CLEARED"></i> Cleared, relative to stated assumptions</span>
+          Services and their exposure are declared, not discovered. Verdicts come from deterministic code, never from a model.</p>
+      </div>
+    </section>
+
+    <section class="band hood" id="hood" aria-labelledby="hood-title">
+      <div class="wrap hood-grid">
+        <div class="hood-copy">
+          <p class="eyebrow">The graph</p>
+          <h2 id="hood-title">Take FalkorDB away and there is nothing left</h2>
+          <p class="hood-lede">Evidence, memory and the agent's tools all run on one FalkorDB graph. This is what it does.</p>
+          <dl class="jobs">
+            <div><dt>Evidence</dt><dd>A shortest-path query over the resolved dependency edges returns the chain for every exposed service.</dd></div>
+            <div><dt>Memory</dt><dd>Decisions point at the facts they assume. One traversal finds exactly which decisions a new event breaks.</dd></div>
+            <div><dt>Tools</dt><dd>An MCP server exposes read-only tools, including a fleet-wide fix-first query and PageRank over each dependency graph. The agent reaches the graph only through them.</dd></div>
+          </dl>
+          <dl class="facts" id="facts"></dl>
+        </div>
+        <div class="hood-code">
+          <div class="code-tabs" role="tablist" aria-label="Queries" id="code-tabs"></div>
+          <pre class="cypher" id="code-view" tabindex="0"></pre>
+          <p class="hint" id="code-hint"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <span class="brand small"><svg viewBox="0 0 20 28" width="10" height="14" aria-hidden="true"><path d="M10 0v17" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="10" cy="22" r="5" class="bob-fill"/></svg> Plumbline</span>
+      <p>Built for Graph Hacks: Context for AI Agents. Services and their exposure are declared, not discovered. Planted fixtures and the hypothetical event are labelled wherever they appear.</p>
+    </div>
+  </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script type="module" src="js/main.js"></script>

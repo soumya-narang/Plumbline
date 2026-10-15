@@ -74,7 +74,8 @@ export function renderEvidence(snap, sel, ctx, handlers) {
   let main = "";
   if (row.verdict === "EXPOSED") {
     statement = `Its lockfile pins ${row.evidence.map((e) => `${e.name}@${e.version}`).join(", ")}, which ${adv.id} names as malicious${row.evidence.some((e) => e.dev) ? " (a development dependency)" : ""}.`;
-    main = `<div class="section"><h4>Path · ${row.hops === 0 ? "direct dependency" : plural(row.hops, "hop")}</h4>${plumbSvg(row, adv.published)}</div>`;
+    main = `<div class="section"><h4>Path · ${row.hops === 0 ? "direct dependency" : plural(row.hops, "hop")}</h4>${plumbSvg(row, adv.published)}</div>
+      ${row.pulled_by?.length ? `<p class="fix"><b>What to bump:</b> ${row.pulled_by.map((p) => `<code>${esc(p)}</code>`).join(", ")}. ${row.pulled_by.length === 1 ? "It is" : "They are"} the direct ${row.pulled_by.length === 1 ? "dependency" : "dependencies"} that pull the poisoned version in.</p>` : ""}`;
   } else if (row.verdict === "CLEARED") {
     statement = row.evidence.length
       ? `It locks ${row.evidence.length === 1 ? "this version" : "these versions"} of ${adv.package}, none of which ${adv.id} names.`

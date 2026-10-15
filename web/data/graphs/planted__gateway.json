@@ -1,0 +1,1 @@
+{"artifact":"planted/gateway","edges":[[0,2],[2,3],[3,4]],"nodes":[["node_modules/@acme/http-client","@acme/http-client","1.4.0",1,true],["node_modules/pino","pino","9.5.0",1,true],["node_modules/@cacheable/net","@cacheable/net","2.1.1",2,false],["node_modules/@cacheable/utils","@cacheable/utils","2.5.1",3,false],["node_modules/keyv","keyv","6.0.0",4,false]]}

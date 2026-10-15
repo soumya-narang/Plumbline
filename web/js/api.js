@@ -63,3 +63,11 @@ export async function verifyReceipt(advisory, artifact, stop) {
     body: JSON.stringify(receipt),
   });
 }
+
+export async function getGraph(artifact) {
+  if (mode === "live") return getJson(`api/graph?artifact=${encodeURIComponent(artifact)}`);
+  return getJson(`data/graphs/${artifact.replace("/", "__")}.json`);
+}
+
+/** Namespace form, for modules that prefer `api.getGraph(...)`. */
+export const api = { getGraph, isLive };

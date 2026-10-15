@@ -13,7 +13,8 @@ from pathlib import Path
 from plumbline import config
 from plumbline.agent.runner import ask
 from plumbline.agent.suggestions import SUGGESTIONS
-from plumbline.graph.client import connect
+from plumbline.graph.client import connect, run_named
+from plumbline.graphdata import artifact_graph
 from plumbline.memory.replay import reset
 from plumbline.snapshot import build_meta, snapshot
 
@@ -41,5 +42,7 @@ def export(out_dir: Path = DEFAULT_OUT) -> int:
         for question in SUGGESTIONS:  # the graph is already positioned at this stop by snapshot()
             answers[question] = _static_run(asyncio.run(ask(question, stop["at"], backend="planner")).to_dict())
         _write(out_dir / "agent" / f"{stop['index']}.json", answers)
+    for (artifact,) in run_named(graph, "triage/artifacts_with_lock").result_set:
+        _write(out_dir / "graphs" / f"{artifact.replace('/', '__')}.json", artifact_graph(graph, artifact))
     reset(graph)
     return len(meta["timeline"])
