@@ -30,6 +30,12 @@ Verdicts come only from deterministic, unit-tested code (`src/plumbline/policy`)
 artifact locks, what an advisory names, and the dependency path between them. A language model will select tools and
 phrase answers; it can never produce or change a verdict.
 
+![Plumbline at the moment a decision reopens, in the vellum theme](docs/img/ui-vellum.png)
+
+The interface is an engineering drawing sheet, with a blueprint dark theme: a true-scale time ruler with the long gap broken
+out, a schedule of artifacts, the evidence path drawn as a dimensioned plumb line, a decision register, and a revision cloud
+around any decision whose assumption stopped being true.
+
 ## Try it
 
 ```bash

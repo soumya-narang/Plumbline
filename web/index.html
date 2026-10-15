@@ -4,69 +4,97 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Plumbline</title>
-  <meta name="description" content="Replay a real npm supply-chain incident: who is exposed, the evidence path, and which earlier decisions reopen.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f14'/%3E%3Cpath d='M16 5v15' stroke='%234cc9f0' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='3.5' fill='%23ff5d5d'/%3E%3C/svg%3E">
+  <meta name="description" content="A survey of one real npm supply-chain incident: who was exposed, the evidence path, and which earlier decisions no longer hold.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1b26'/%3E%3Cpath d='M16 3v17' stroke='%23eceff1' stroke-width='2'/%3E%3Ccircle cx='16' cy='25' r='5' fill='%23cf3a14'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/barlow-condensed-600.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip" href="#evidence">Skip to evidence</a>
+  <a class="skip" href="#drawing">Skip to the drawing</a>
 
-  <header class="top">
-    <div class="brand">
-      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M16 4v16" stroke="#4cc9f0" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="25" r="4" fill="#ff5d5d"/></svg>
-      <div>
-        <h1>Plumbline</h1>
-        <p id="incident-name" class="muted">Loading incident…</p>
+  <div class="sheet">
+    <header class="sheet-head">
+      <div class="wordmark">
+        <svg viewBox="0 0 20 28" width="14" height="20" aria-hidden="true"><path d="M10 0v17" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="10" cy="22" r="5" class="bob-fill"/></svg>
+        <span>Plumbline</span>
       </div>
-    </div>
-    <div class="badges">
-      <span id="badge-mode" class="badge" title="Where this page gets its data"></span>
-      <span id="badge-agent" class="badge" title="What chooses the tools"></span>
-      <a class="badge link" href="https://github.com/" id="repo-link" hidden>Source</a>
-    </div>
-  </header>
+      <p class="sheet-name">Exposure survey</p>
+      <p class="sheet-meta">
+        <span id="badge-mode"></span>
+        <span id="badge-agent"></span>
+        <button type="button" id="theme-btn" class="textbtn" aria-label="Switch between the vellum and blueprint themes"></button>
+        <a id="repo-link" href="#" hidden>Source</a>
+      </p>
+    </header>
 
-  <section class="timeline" aria-label="Incident timeline">
-    <div class="tl-controls">
-      <button id="tl-prev" class="icon-btn" aria-label="Previous event">‹</button>
-      <button id="tl-play" class="icon-btn play" aria-label="Play the incident">▶</button>
-      <button id="tl-next" class="icon-btn" aria-label="Next event">›</button>
-      <div class="tl-now"><span id="tl-clock" class="clock">--:--:--</span><span class="muted"> UTC · 2026-08-04</span></div>
-      <div id="tl-label" class="tl-label muted"></div>
-    </div>
-    <ol id="tl-rail" class="rail" aria-label="Events"></ol>
-  </section>
-
-  <div id="banner" role="status"></div>
-
-  <main class="grid">
-    <section class="panel fleet" aria-labelledby="h-fleet">
-      <div class="panel-head">
-        <h2 id="h-fleet">Fleet</h2>
-        <span id="fleet-sub" class="muted small"></span>
+    <section class="title-row" aria-label="Incident">
+      <div class="title-copy">
+        <p class="label">Incident · 4 August 2026 · all times UTC</p>
+        <h1 id="incident-name">Loading the incident</h1>
+        <p class="dek">Six packages were trojanized within 25 minutes after a maintainer account was compromised. This survey replays it
+          across 14 public repositories and 3 planted fixtures: who was exposed, how that is known, and which earlier decisions no longer hold.</p>
       </div>
-      <div id="adv-tabs" class="adv-tabs" role="tablist" aria-label="Advisories"></div>
-      <div id="counts"></div>
-      <div id="fleet-list" class="fleet-list"></div>
+      <div class="readout" aria-live="off">
+        <span class="label">Clock</span>
+        <span id="tl-clock" class="clock">--:--:--</span>
+      </div>
     </section>
 
-    <section class="panel evidence" id="evidence" aria-labelledby="h-evidence" tabindex="-1">
-      <div class="panel-head"><h2 id="h-evidence">Evidence</h2><span id="ev-sub" class="muted small"></span></div>
-      <div id="evidence-body"></div>
+    <section class="ruler-block" aria-label="Timeline">
+      <div class="ruler-controls">
+        <button id="tl-prev" class="tbtn" type="button" aria-label="Previous event">&larr; Prev</button>
+        <button id="tl-play" class="tbtn" type="button" aria-label="Play the incident">Play</button>
+        <button id="tl-next" class="tbtn" type="button" aria-label="Next event">Next &rarr;</button>
+        <p id="tl-label" class="now-line"></p>
+      </div>
+      <div id="ruler" class="ruler" role="group" aria-label="Events, drawn to time scale"></div>
     </section>
 
-    <section class="panel side" aria-label="Decisions and agent">
-      <div class="panel-head"><h2>Decisions</h2><span id="dec-sub" class="muted small"></span></div>
-      <div id="decisions"></div>
-      <div class="panel-head agent-head"><h2>Ask the agent</h2><span id="agent-sub" class="muted small"></span></div>
+    <div id="banner" role="status"></div>
+
+    <main class="zones">
+      <section class="zone schedule" aria-labelledby="h-schedule">
+        <header class="zone-head"><h2 id="h-schedule" class="label">Schedule of artifacts</h2><span id="fleet-sub" class="label"></span></header>
+        <div id="adv-tabs" class="adv-tabs" role="tablist" aria-label="Advisories"></div>
+        <div id="counts" class="summary"></div>
+        <div id="fleet-list"></div>
+      </section>
+
+      <section class="zone drawing" id="drawing" aria-labelledby="h-drawing" tabindex="-1">
+        <header class="zone-head"><h2 id="h-drawing" class="label">Drawing · path to the malicious version</h2><span id="ev-sub" class="label"></span></header>
+        <div id="evidence-body" class="canvas"></div>
+      </section>
+
+      <section class="zone register" aria-labelledby="h-register">
+        <header class="zone-head"><h2 id="h-register" class="label">Decision register</h2><span id="dec-sub" class="label"></span></header>
+        <div id="decisions"></div>
+      </section>
+    </main>
+
+    <section class="desk" aria-labelledby="h-desk">
+      <header class="zone-head"><h2 id="h-desk" class="label">Query desk</h2><span id="agent-sub" class="label"></span></header>
       <div id="agent"></div>
     </section>
-  </main>
 
-  <footer class="foot muted small">
-    Verdicts come from deterministic code, never from a model. The deployment overlay is declared, not discovered.
-    Planted repositories and the hypothetical event are labelled wherever they appear.
-  </footer>
+    <footer class="titleblock" aria-label="Title block">
+      <dl class="tb-cell wide"><dt>Project</dt><dd>Plumbline · supply-chain exposure</dd></dl>
+      <dl class="tb-cell wide"><dt>Drawing</dt><dd id="tb-drawing">Exposure survey</dd></dl>
+      <dl class="tb-cell"><dt>Scale</dt><dd>Time, true to scale</dd></dl>
+      <dl class="tb-cell"><dt>Drawn by</dt><dd>Deterministic policy v1</dd></dl>
+      <dl class="tb-cell"><dt>Source</dt><dd id="tb-source">—</dd></dl>
+      <dl class="tb-cell rev"><dt>Rev</dt><dd id="tb-rev">A</dd></dl>
+      <div class="tb-key">
+        <span class="label">Key</span>
+        <span><i class="mark EXPOSED"></i> exposed</span>
+        <span><i class="mark UNKNOWN"></i> not determined</span>
+        <span><i class="mark CLEARED"></i> cleared, with stated assumptions</span>
+        <span><i class="tri"></i> hypothetical event</span>
+      </div>
+      <p class="tb-note">Services and their exposure are declared, not discovered. Planted fixtures and the hypothetical event are labelled wherever they appear.
+        Verdicts come from deterministic code, never from a model.</p>
+    </footer>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script type="module" src="js/main.js"></script>

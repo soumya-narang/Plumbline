@@ -1,44 +1,37 @@
-import { PIN, approverLabel, esc, factView } from "./format.js";
+import { VERDICT_WORD, approverLabel, attachClouds, clock, esc, factView, mark } from "./format.js";
 
-function pins(ids, brokenIds) {
-  return `<div class="pins">${ids
-    .map((id) => {
-      const f = factView(id);
-      return `<span class="pill ${brokenIds.has(id) ? "broken" : ""}" title="${esc(f.why)}">${PIN}${esc(f.label)}</span>`;
-    })
-    .join("")}</div>`;
-}
-
-export function renderDecisions(snap, sel, onSelect) {
+export function renderDecisions(snap, sel, onSelect, revFor) {
   const root = document.getElementById("decisions");
   const sub = document.getElementById("dec-sub");
   const list = [...snap.decisions].sort((a, b) => (b.status === "reopened") - (a.status === "reopened") || a.created_ms - b.created_ms);
-  sub.textContent = list.length ? `${list.length} recorded · ${snap.reopened.length} reopened` : "";
+  sub.textContent = list.length ? `${list.length} recorded · ${snap.reopened.length} revised` : "";
 
   if (!list.length) {
-    root.innerHTML = '<p class="empty">No decisions yet. Approvals appear on the timeline.</p>';
+    root.innerHTML = '<p class="empty" style="padding:24px 14px">No decisions recorded yet. Approvals appear on the timeline as open circles.</p>';
     return;
   }
-  root.innerHTML = list
-    .map((d) => {
-      const re = snap.reopened.find((r) => r.decision === d.decision);
-      const broken = new Set(re?.broken ?? []);
-      const selected = d.artifact === sel.artifact && d.advisory === sel.advisory;
-      return `<article class="dec ${d.status}" data-art="${esc(d.artifact)}" data-adv="${esc(d.advisory)}" tabindex="0"
-          role="button" aria-label="${esc(d.artifact)}, ${esc(d.status)}" ${selected ? 'style="outline:1px solid var(--accent)"' : ""}>
-        <div class="dec-top"><b>${esc(d.artifact)}</b><span class="status">${esc(d.status)}</span></div>
-        <div class="dec-sub">${esc(d.advisory)} · approved by ${esc(approverLabel(d.approver))} at ${esc(d.created.slice(11, 19))} UTC</div>
-        <div class="shift"><span class="mini ${d.verdict}">${d.verdict}</span>
-          ${re ? `<span class="arrow">→</span><span class="mini ${re.now}">${re.now}</span><span class="muted">after ${esc(re.broken_at.slice(11, 19))} UTC</span>` : ""}</div>
-        ${pins(d.assumption_ids, broken)}
-      </article>`;
-    })
-    .join("");
 
-  root.onclick = (e) => { const el = e.target.closest("[data-art]"); if (el) onSelect(el.dataset.adv, el.dataset.art); };
+  root.innerHTML = `<ol class="reglist">${list.map((d) => {
+    const re = snap.reopened.find((r) => r.decision === d.decision);
+    const selected = d.artifact === sel.artifact && d.advisory === sel.advisory;
+    const broken = re ? factView(re.broken[0]).label : "";
+    return `<li class="regitem ${d.status}" data-art="${esc(d.artifact)}" data-adv="${esc(d.advisory)}" tabindex="0" role="button"
+        aria-selected="${selected}" aria-label="${esc(d.artifact)}, ${esc(d.status)}" ${re ? "data-cloud" : ""}>
+      <span class="who">${esc(d.artifact)}</span>
+      <span class="by">${esc(d.advisory)} · approved by ${esc(approverLabel(d.approver))} at ${esc(clock(d.created))}</span>
+      <span class="shift">${mark(d.verdict)} ${esc(VERDICT_WORD[d.verdict])}
+        ${re ? `<span class="arrow">→</span>${mark(re.now)} <span class="to">${esc(VERDICT_WORD[re.now])}</span>` : ""}</span>
+      ${re ? `<span class="why">Assumption broken at ${esc(clock(re.broken_at))}: ${esc(broken)}.</span><span class="delta"><i></i>${esc(revFor(re.broken_at))}</span>` : ""}
+    </li>`;
+  }).join("")}</ol>
+  <p class="reg-key">A revision cloud marks a decision that was reopened because one of its assumptions stopped being true.</p>`;
+
+  attachClouds(root);
+  const pick = (el) => { if (el?.dataset.art) onSelect(el.dataset.adv, el.dataset.art); };
+  root.onclick = (e) => pick(e.target.closest("[data-art]"));
   root.onkeydown = (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     const el = e.target.closest("[data-art]");
-    if (el) { e.preventDefault(); onSelect(el.dataset.adv, el.dataset.art); }
+    if (el) { e.preventDefault(); pick(el); }
   };
 }
