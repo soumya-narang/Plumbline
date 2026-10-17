@@ -558,4 +558,5 @@ details.proof h5 { margin: 22px 0 10px; font-size: .85rem; font-weight: 600; col
 .tryit ol b { color: var(--ink); font-weight: 600; }
 .tryit p { margin-top: 18px; color: var(--ink-2); }
 .tryit [hidden] { display: none; }
-.tryit .btn-hero { background: var(--ink); color: var(--bg); }
+.tryit .btn-hero { background: var(--ink); color: var(--page); }
+.tryit .btn-hero:hover { background: var(--ink); opacity: .86; }
