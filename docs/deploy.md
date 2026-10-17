@@ -54,7 +54,21 @@ needs to survive a restart. First start takes about a minute.
 3. Optional: under Settings, Variables and secrets, add `PLUMBLINE_REPO_URL`. To let a model choose the tools
    instead of the built-in planner, add secrets `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_MODEL` (any server that speaks
    the chat-completions tool-calling protocol). `LLM_MAX_ASKS_PER_HOUR` (default 60) caps model calls so a public
-   Space cannot run up a bill; over the cap, questions fall back to the planner.
+   Space cannot run up a bill; over the cap, questions fall back to the planner. If the model is slow, raise
+   `LLM_TIMEOUT` (seconds, default 120). If it fails, times out, or answers without calling a tool, the agent answers
+   with the planner and says why, rather than showing words that are not grounded in the graph.
+
+4. Settings that matter for a public deployment (all optional):
+
+   | Variable | Default | Effect |
+   |---|---|---|
+   | `PLUMBLINE_APPROVALS` | `on` | `off` makes the site read-only: nobody can record an approval |
+   | `PLUMBLINE_TRUST_PROXY` | `1` in the image | count visitors by `X-Forwarded-For` (set by the Space's proxy) so per-client limits are per person |
+   | `LLM_MAX_ASKS_PER_HOUR` | `60` | cap on model calls |
+
+   Limits built in: three open lockfile checks per client, 25 in total, each deleted after 30 minutes; ten approvals or
+   what-ifs per hour per client; lockfiles up to 4 MB, 8,000 packages and 20,000 dependency links. The image starts
+   FalkorDB with 500 queued queries and a 5 second read timeout (its defaults are 25 and 1 second).
 
 Free Spaces sleep after a period of inactivity and wake on the next visit. The static site has no such delay, so
 link to both.
