@@ -501,4 +501,5 @@ scripts/               probe_fleet.py, make_storefront_fixture.py, make_check_sa
 - [docs/data-model.md](docs/data-model.md): nodes, edges, indexes and known limits
 - [docs/benchmark.md](docs/benchmark.md): the full ablation with its first wrong answers
 - [docs/deploy.md](docs/deploy.md): GitHub Pages and Hugging Face Space deployment and public-deployment settings
+- [docs/demo-script.md](docs/demo-script.md): a three-minute walkthrough of the one end-to-end story, with the answers to likely questions
 - [data/fixtures/planted/README.md](data/fixtures/planted/README.md): what each planted fixture is for
