@@ -81,7 +81,12 @@ With the server running, open `/check.html` and paste a `package-lock.json` (npm
 its own FalkorDB graph, created from a template graph with `GRAPH.COPY`, so uploads cannot see each other or the
 fleet graph. The upload is judged against the incident's advisories with the same policy, and the report shows the
 dependency path, the direct dependency to bump, and the assumptions behind each verdict. Checks are deleted after two
-hours; uploads are parsed, never installed or executed. The same flow is available as `POST /api/check`,
+hours; uploads are parsed, never installed or executed. It accepts an npm `package-lock.json` or `npm-shrinkwrap.json`
+(`lockfileVersion` 2 or 3, up to 4 MB and 8,000 packages); yarn, pnpm and v1 lockfiles are refused with a reason.
+The page offers three samples (made by `scripts/make_check_samples.py`): a hand-authored exposed lockfile, a real unmodified
+project that locks a safe `keyv` and is correctly cleared, and that real project with one version edited to the poisoned
+release, which is correctly found through a four-package path. To cross-check a verdict against npm itself, put the
+lockfile and a matching `package.json` in a folder and run `npm ls keyv --package-lock-only --offline`. The same flow is available as `POST /api/check`,
 `GET /api/check/{id}`, `GET /api/check/{id}/graph` and `DELETE /api/check/{id}`. This needs the live server, so it is
 not part of the static site.
 

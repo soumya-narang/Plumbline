@@ -1,0 +1,40 @@
+{
+  "name": "gateway",
+  "version": "2.3.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "gateway",
+      "version": "2.3.0",
+      "dependencies": {
+        "@acme/http-client": "^1.4.0",
+        "pino": "^9.5.0"
+      }
+    },
+    "node_modules/@acme/http-client": {
+      "version": "1.4.0",
+      "dependencies": {
+        "@cacheable/net": "^2.1.0"
+      }
+    },
+    "node_modules/@cacheable/net": {
+      "version": "2.1.1",
+      "dependencies": {
+        "@cacheable/utils": "^2.5.0"
+      }
+    },
+    "node_modules/@cacheable/utils": {
+      "version": "2.5.1",
+      "dependencies": {
+        "keyv": "^6.0.0"
+      }
+    },
+    "node_modules/keyv": {
+      "version": "6.0.0"
+    },
+    "node_modules/pino": {
+      "version": "9.5.0"
+    }
+  }
+}

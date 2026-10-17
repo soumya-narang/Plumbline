@@ -128,3 +128,31 @@ def test_the_label_cannot_smuggle_markup():
 
 def test_template_file_does_not_exist_on_disk():
     assert not Path(config.DATA / "tenants").exists()
+
+
+SAMPLES = config.ROOT / "web" / "samples"
+
+
+@pytest.mark.parametrize("name,exposed,path_tail", [
+    ("exposed-hand-authored.json", 3, ["@cacheable/utils@2.5.1", "keyv@6.0.0"]),
+    ("exposed-real-nodemailer-edited.json", 1, ["flat-cache@4.0.1", "keyv@6.0.0"]),
+    ("clear-real-nodemailer.json", 0, None),
+])
+def test_the_samples_offered_on_the_check_page_give_the_stated_verdicts(name, exposed, path_tail):
+    r = tenants.create((SAMPLES / name).read_bytes())
+    assert r["summary"]["EXPOSED"] == exposed and r["summary"]["UNKNOWN"] == 0
+    if path_tail:
+        assert next(f for f in r["findings"] if f["package"] == "keyv")["path"][-2:] == path_tail
+
+
+def test_a_safe_keyv_is_cleared_even_though_the_package_name_matches():
+    r = tenants.create((SAMPLES / "clear-real-nodemailer.json").read_bytes())
+    keyv = next(f for f in r["findings"] if f["package"] == "keyv")
+    assert keyv["verdict"] == "CLEARED" and [f"{e['name']}@{e['version']}" for e in keyv["evidence"]] == ["keyv@4.5.4"]
+
+
+def test_the_report_carries_the_graph_queries_that_ran():
+    r = tenants.create(GATEWAY)
+    assert [q["name"] for q in r["work"]["queries"]] == ["relevant_locks", "q2_explain_path", "via_direct"]
+    assert all("MATCH" in q["cypher"] for q in r["work"]["queries"])
+    assert r["work"]["graph"]["installs"] == 5 and r["work"]["graph"]["requirements"] == 3

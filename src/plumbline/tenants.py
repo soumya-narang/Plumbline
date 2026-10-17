@@ -18,7 +18,7 @@ import threading
 from falkordb import Graph
 from redis.exceptions import ResponseError
 
-from plumbline.graph.client import connect, database, run_named
+from plumbline.graph.client import connect, database, read_query_text, run_named
 from plumbline.graph.loader import load_advisory_rows, load_artifact_rows, load_lockgraph_rows
 from plumbline.graph.schema import apply_schema
 from plumbline.graphdata import artifact_graph
@@ -135,6 +135,22 @@ def _tenant(tenant_id: str) -> Graph:
     return connect(name)
 
 
+# The queries that run for every check, in the order they run, so the page can show the graph's part of the work.
+WORK = (
+    ("triage/relevant_locks", "Find every install in the project that is the advisory's package or a version it names"),
+    ("q2_explain_path", "Follow REQUIRES edges from a direct dependency to the poisoned install (shortest path)"),
+    ("triage/via_direct", "Name the direct dependencies that lead there: what to bump"),
+)
+
+
+def _work(graph: Graph) -> dict:
+    installs, requirements = run_named(graph, "tenant/size").result_set[0]
+    return {
+        "graph": {"installs": installs, "requirements": requirements},
+        "queries": [{"name": n.split("/")[-1], "role": role, "cypher": read_query_text(n).strip()} for n, role in WORK],
+    }
+
+
 def report(tenant_id: str) -> dict:
     graph = _tenant(tenant_id)
     info = _info(PREFIX + tenant_id)
@@ -149,7 +165,7 @@ def report(tenant_id: str) -> dict:
     return {
         "tenant": tenant_id, "label": info["label"], "artifact": ARTIFACT_ID, "packages": info["packages"],
         "created": to_iso(info["created_ms"]), "expires": to_iso(info["created_ms"] + TTL_MS),
-        "summary": summary, "findings": items,
+        "summary": summary, "findings": items, "work": _work(graph),
     }
 
 
