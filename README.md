@@ -52,6 +52,16 @@ Step through the incident with the timeline (or press play). The page also runs 
 see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
 exposing eight read-only tools, including a fleet-wide fix-first query and PageRank. Approving a decision is a human action and is deliberately not a tool.
 
+## Check your own lockfile
+
+With the server running, open `/check.html` and paste a `package-lock.json` (npm lockfile v2 or v3). Each upload gets
+its own FalkorDB graph, created from a template graph with `GRAPH.COPY`, so uploads cannot see each other or the
+fleet graph. The upload is judged against the incident's advisories with the same policy, and the report shows the
+dependency path, the direct dependency to bump, and the assumptions behind each verdict. Checks are deleted after two
+hours; uploads are parsed, never installed or executed. The same flow is available as `POST /api/check`,
+`GET /api/check/{id}`, `GET /api/check/{id}/graph` and `DELETE /api/check/{id}`. This needs the live server, so it is
+not part of the static site.
+
 ## What it does from the terminal
 
 ```bash

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from plumbline import config
+from plumbline import config, tenants
 from plumbline.agent.runner import ask
 from plumbline.graph.client import connect
 from plumbline.graphdata import artifact_graph
@@ -45,6 +45,11 @@ class ApproveBody(BaseModel):
     artifact: str
     at: str
     approver: str = Field(min_length=1, max_length=80)
+
+
+class CheckBody(BaseModel):
+    lockfile: str = Field(min_length=2, max_length=4_100_000)
+    label: str = Field(default="", max_length=80)
 
 
 class VerifyBody(BaseModel):
@@ -127,6 +132,36 @@ def create_app() -> FastAPI:
             snap = snapshot(connect(), at_ms, list(_manual))
             _cache[(at_ms, len(_manual))] = snap
             return {"decision": proposal.decision_id, "snapshot": snap}
+
+    @app.post("/api/check")
+    def post_check(body: CheckBody) -> dict:
+        """Check your own lockfile: it gets its own graph and is judged against the incident's advisories."""
+        try:
+            return tenants.create(body.lockfile.encode("utf-8"), body.label)
+        except tenants.TenantError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.get("/api/check/{tenant_id}")
+    def get_check(tenant_id: str) -> dict:
+        try:
+            return tenants.report(tenant_id)
+        except tenants.TenantError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.get("/api/check/{tenant_id}/graph")
+    def get_check_graph(tenant_id: str) -> dict:
+        try:
+            return tenants.graph_payload(tenant_id)
+        except tenants.TenantError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.delete("/api/check/{tenant_id}")
+    def delete_check(tenant_id: str) -> dict:
+        try:
+            tenants.delete(tenant_id)
+        except tenants.TenantError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return {"deleted": True}
 
     @app.get("/api/graph")
     def get_graph(artifact: str) -> dict:

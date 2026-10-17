@@ -9,9 +9,13 @@ from plumbline import config
 DEFAULT_GRAPH = "plumbline"
 
 
-def connect(graph_name: str = DEFAULT_GRAPH) -> Graph:
+def database() -> FalkorDB:
     s = config.load_settings()
-    return FalkorDB(host=s.falkordb_host, port=s.falkordb_port, password=s.falkordb_password).select_graph(graph_name)
+    return FalkorDB(host=s.falkordb_host, port=s.falkordb_port, password=s.falkordb_password)
+
+
+def connect(graph_name: str = DEFAULT_GRAPH) -> Graph:
+    return database().select_graph(graph_name)
 
 
 def read_query_text(name: str) -> str:

@@ -71,12 +71,27 @@ def load_all(graph_name: str = "plumbline") -> dict[str, int]:
     for e in fleet:
         if e.lock_state != "present":
             continue
-        rows = _read_jsonl(lockgraph_path(e))
-        dep_rows = [r for r in rows if r["t"] == "dep"]
-        third_party = [r for r in dep_rows if not r["workspace"]]
-        workspace = [r for r in dep_rows if r["workspace"]]
-        deps += _run_batched(graph, "load/locked_dep", third_party)
-        members += _run_batched(graph, "load/workspace_member", workspace)
-        edges += _run_batched(graph, "load/requires", (r for r in rows if r["t"] == "requires"))
+        d, m, ed = load_lockgraph_rows(graph, _read_jsonl(lockgraph_path(e)))
+        deps, members, edges = deps + d, members + m, edges + ed
     counts.update(locked_deps=deps, workspace_members=members, requires_edges=edges)
     return counts
+
+
+def load_lockgraph_rows(graph: Graph, rows: list[dict]) -> tuple[int, int, int]:
+    """Write one artifact's dependency rows: third-party installs, workspace members and the edges between them."""
+    dep_rows = [r for r in rows if r["t"] == "dep"]
+    third_party = [r for r in dep_rows if not r["workspace"]]
+    workspace = [r for r in dep_rows if r["workspace"]]
+    return (
+        _run_batched(graph, "load/locked_dep", third_party),
+        _run_batched(graph, "load/workspace_member", workspace),
+        _run_batched(graph, "load/requires", (r for r in rows if r["t"] == "requires")),
+    )
+
+
+def load_advisory_rows(graph: Graph) -> int:
+    return _run_batched(graph, "load/advisory", load_advisories())
+
+
+def load_artifact_rows(graph: Graph, rows: list[dict]) -> int:
+    return _run_batched(graph, "load/artifact", rows)

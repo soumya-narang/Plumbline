@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check your lockfile · Plumbline</title>
+<style>
+  :root { --bg:#f6f5f1; --ink:#1b1c1e; --mute:#6a6d72; --line:#dcdad2; --card:#fff; --bad:#b3261e; --ok:#1f6f43; --warn:#8a5a00; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141517; --ink:#ececea; --mute:#9a9da3; --line:#2c2e33; --card:#1b1c1f; --bad:#ff8a80; --ok:#6fcf97; --warn:#e0b050; } }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui, sans-serif }
+  main { max-width:860px; margin:0 auto; padding:40px 16px 80px }
+  a { color:inherit }
+  h1 { font-size:28px; margin:8px 0 6px; letter-spacing:-.01em }
+  p.lead { color:var(--mute); margin:0 0 24px; max-width:60ch }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px }
+  textarea { width:100%; min-height:150px; font:13px/1.4 ui-monospace, Consolas, monospace; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:6px; padding:10px; resize:vertical }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px }
+  input[type=text] { flex:1; min-width:160px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink); font:inherit }
+  button { padding:8px 14px; border-radius:6px; border:1px solid var(--ink); background:var(--ink); color:var(--bg); font:inherit; cursor:pointer }
+  button.quiet { background:transparent; color:var(--ink); border-color:var(--line) }
+  button:disabled { opacity:.5; cursor:default }
+  .note { color:var(--mute); font-size:14px }
+  #err { color:var(--bad); margin-top:10px; display:none }
+  #out { margin-top:28px; display:none }
+  .sum { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px }
+  .sum div { flex:1; min-width:120px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px }
+  .sum b { display:block; font-size:28px; line-height:1.1 }
+  .EXPOSED { color:var(--bad) } .CLEARED { color:var(--ok) } .UNKNOWN { color:var(--warn) }
+  .f { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:10px }
+  .f h3 { margin:0 0 4px; font-size:16px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap }
+  .tag { font:600 12px ui-monospace, Consolas, monospace; letter-spacing:.04em }
+  .path { font:13px/1.6 ui-monospace, Consolas, monospace; color:var(--mute); word-break:break-word }
+  .f p { margin:6px 0 0; font-size:14px }
+  ul { margin:6px 0 0; padding-left:18px; font-size:14px; color:var(--mute) }
+</style>
+</head>
+<body>
+<main>
+  <p class="note"><a href="/">&larr; Plumbline</a></p>
+  <h1>Check your own lockfile</h1>
+  <p class="lead">Paste a <code>package-lock.json</code> (v2 or v3). It gets its own isolated graph, is judged against the incident's advisories, and is deleted after two hours. Nothing is installed or executed; only the lockfile's structure is read.</p>
+
+  <div class="box">
+    <textarea id="lock" spellcheck="false" placeholder="Paste package-lock.json here, or choose a file"></textarea>
+    <div class="row">
+      <input id="label" type="text" maxlength="60" placeholder="Name (optional)">
+      <input id="file" type="file" accept=".json,application/json">
+      <button id="sample" class="quiet" type="button">Load a sample</button>
+      <button id="go" type="button">Check</button>
+    </div>
+    <div id="err" role="alert"></div>
+  </div>
+
+  <section id="out" aria-live="polite">
+    <div class="sum" id="sum"></div>
+    <div id="list"></div>
+    <div class="row"><button id="del" class="quiet" type="button">Delete this check now</button><span class="note" id="meta"></span></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let tenant = null;
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+const WHY = {
+  affected_version_locked: "An affected version is locked in this project.",
+  safe_version_locked: "The package is present, but at a version outside the affected range.",
+  package_absent: "The package is not in this lockfile.",
+  no_lockfile: "No lockfile, so this cannot be decided.",
+  lockfile_format_unsupported: "This lockfile format cannot be read.",
+};
+const ASSUME = {
+  lock_snapshot: "Assumes the lockfile matches what is deployed.",
+  not_affected: "Assumes the vendor's not-affected statement holds.",
+};
+
+function show(r) {
+  tenant = r.tenant;
+  const sum = $("sum"); sum.replaceChildren();
+  for (const k of ["EXPOSED", "CLEARED", "UNKNOWN"]) {
+    const d = el("div"); const b = el("b", k, String(r.summary[k])); d.append(b, el("span", "note", k.toLowerCase()));
+    sum.append(d);
+  }
+  const list = $("list"); list.replaceChildren();
+  const order = { EXPOSED: 0, UNKNOWN: 1, CLEARED: 2 };
+  for (const f of [...r.findings].sort((a, b) => order[a.verdict] - order[b.verdict])) {
+    const card = el("div", "f");
+    const h = el("h3"); h.append(el("span", "tag " + f.verdict, f.verdict), el("span", null, f.package));
+    card.append(h);
+    if (f.path && f.path.length) card.append(el("div", "path", f.path.join("  →  ")));
+    if (f.pulled_by && f.pulled_by.length) card.append(el("p", null, "Pulled in by " + f.pulled_by.join(", ") + "."));
+    if (f.reason) card.append(el("p", null, WHY[f.reason] || f.reason));
+    if (f.assumptions && f.assumptions.length) {
+      const ul = el("ul");
+      for (const a of f.assumptions) ul.append(el("li", null, ASSUME[a.kind] || a.kind));
+      card.append(ul);
+    }
+    list.append(card);
+  }
+  $("meta").textContent = `${r.packages} packages · expires ${new Date(r.expires).toLocaleTimeString()}`;
+  $("out").style.display = "block";
+  $("out").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function call(url, opts) {
+  const res = await fetch(url, opts);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || `request failed (${res.status})`);
+  return body;
+}
+
+$("go").onclick = async () => {
+  const err = $("err"); err.style.display = "none";
+  $("go").disabled = true;
+  try {
+    show(await call("/api/check", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ lockfile: $("lock").value, label: $("label").value }) }));
+  } catch (e) { err.textContent = e.message; err.style.display = "block"; }
+  $("go").disabled = false;
+};
+
+$("del").onclick = async () => {
+  if (!tenant) return;
+  await call("/api/check/" + tenant, { method: "DELETE" }).catch(() => {});
+  tenant = null; $("out").style.display = "none";
+};
+
+$("file").onchange = async (e) => { const f = e.target.files[0]; if (f) $("lock").value = await f.text(); };
+
+$("sample").onclick = () => {
+  $("label").value = "sample service";
+  $("lock").value = JSON.stringify({ lockfileVersion: 3, packages: {
+    "": { dependencies: { "@acme/http-client": "^1.4.0", pino: "^9.5.0" } },
+    "node_modules/@acme/http-client": { version: "1.4.0", dependencies: { "@cacheable/net": "^2.1.0" } },
+    "node_modules/@cacheable/net": { version: "2.1.1", dependencies: { "@cacheable/utils": "^2.5.0" } },
+    "node_modules/@cacheable/utils": { version: "2.5.1", dependencies: { keyv: "^6.0.0" } },
+    "node_modules/keyv": { version: "6.0.0" },
+    "node_modules/pino": { version: "9.5.0" } } }, null, 2);
+};
+</script>
+</body>
+</html>
