@@ -70,7 +70,7 @@ body { font-family: var(--text); font-optical-sizing: auto; font-feature-setting
 code, .mono { font-feature-settings: "calt" 0, "zero" 1; }
 
 /* ------------------------------------------------------------------ type roles: one family, tracking that follows size */
-.hero h1 { font-family: var(--display); font-weight: 700; font-size: clamp(3rem, 7vw, 6.25rem); line-height: 1.02; letter-spacing: var(--track-display); max-width: 12ch; text-wrap: balance; }
+.hero h1 { font-family: var(--display); font-weight: 700; font-size: clamp(2.5rem, 4.9vw, 4.5rem); line-height: 1.06; letter-spacing: var(--track-display); max-width: 15ch; text-wrap: balance; }
 .band h2, .hood h2 { font-family: var(--display); font-weight: 700; font-size: clamp(2.5rem, 5.6vw, 4.5rem); line-height: 1.04; letter-spacing: var(--track-display); max-width: 15ch; text-wrap: balance; }
 .habit h3, .bench h3 { font-family: var(--display); font-weight: 650; font-size: clamp(1.7rem, 2.4vw, 2.25rem); line-height: 1.1; letter-spacing: var(--track-large); text-wrap: balance; }
 .brand, .site-foot .brand { font-family: var(--display); font-weight: 600; font-size: 1.1rem; letter-spacing: var(--track-title); }
@@ -219,7 +219,7 @@ h3, .clock, .ev-head h3, .list-head h3, .jobs dt, .bar-group figcaption, .bench 
   .habit { min-height: 0; }
 }
 @media (max-width: 640px) {
-  .hero h1 { font-size: 3.2rem; }
+  .hero h1 { font-size: 2.6rem; }
   .nav { padding-left: 18px; }
   .nav-links a { display: none; }
   .chain { padding-left: 24px; }
