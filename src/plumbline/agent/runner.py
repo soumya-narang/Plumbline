@@ -141,15 +141,21 @@ async def run_planner(client: Client, run: AgentRun) -> None:
         exposed = [r["artifact"] for r in tri.get("rows", []) if r["verdict"] == "EXPOSED"]
         if not exposed:
             lines.append(f"No artifact is exposed to {advisory} as of {run.at}, so there is nothing to hand off.")
+        hypothetical = 0
         for artifact in exposed:
             res = await call_tool(client, run, "hand_off_fix", {"advisory": advisory, "artifact": artifact, "at": run.at})
             if "error" in res:
-                lines.append(f"{artifact}: {res['error']}.")
+                if "hypothetical" in res["error"]:
+                    hypothetical += 1
+                else:
+                    lines.append(f"{artifact}: {res['error']}.")
                 continue
             state = "queued" if res["created"] else f"already in the queue ({res['status']})"
             recalled = (f" Last time this package was fixed: {res['recalled']['resolution']}." if res.get("recalled") else "")
-            hypo = " This exposure depends on a hypothetical advisory revision, so the task is marked hypothetical." if res.get("hypothetical") else ""
-            lines.append(f"{artifact}: fix {state}, bump {res['fix']}.{recalled}{hypo}")
+            lines.append(f"{artifact}: fix {state}, bump {res['fix']}.{recalled}")
+        if hypothetical:
+            lines.append(f"{_plural(hypothetical, 'exposure')} would exist only if a hypothetical advisory revision were real, "
+                         "so no task was created for them: the work queue is shared and holds real work only.")
     elif _QUEUE.search(q):
         res = await call_tool(client, run, "list_tasks", {})
         queue = res.get("tasks", [])

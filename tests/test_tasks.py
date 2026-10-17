@@ -24,8 +24,10 @@ def graph():
     if not n:
         pytest.skip("graph is empty")
     wipe(g)
+    seek(g, AT, [])  # the recorded incident at 13:00, not whatever an earlier test left behind
     yield g
     wipe(g)
+    seek(g, AT, [])
 
 
 def wipe(g):
@@ -36,7 +38,7 @@ def seed(g, n):
     """Many distinct open tasks, written the same way a hand-off writes them."""
     for i in range(n):
         run_named(g, "work/create_task", {"id": f"task:load:{i:03d}", "advisory": ADVISORY, "artifact": EXPOSED_ARTIFACT,
-                                          "fix": "bump x", "note": "", "by": "seed", "now_ms": 1_000 + i, "hypothetical": False}, read_only=False)
+                                          "fix": "bump x", "note": "", "by": "seed", "now_ms": 1_000 + i,}, read_only=False)
 
 
 def test_an_empty_queue_is_safe_to_read_claim_and_complete(graph):
@@ -179,12 +181,32 @@ def test_a_claim_is_fast_even_with_a_full_queue(graph):
     assert time.time() - started < 1.0
 
 
-def test_an_exposure_that_rests_on_a_revision_is_marked_hypothetical(graph):
+def test_an_exposure_that_rests_on_a_hypothetical_revision_never_enters_the_shared_queue(graph):
     seek(graph, to_ms("2026-08-04T13:00:00Z"), [])  # the graph now carries the scripted 12:45 revision
     # billing-worker locks keyv@6.0.1, which only that revision adds to the advisory
-    hypo = tasks.hand_off(graph, ADVISORY, "planted/billing-worker", to_ms("2026-08-04T13:00:00Z"), by="triage-agent")
-    # gateway locks keyv@6.0.0, named by the advisory as published
-    real = tasks.hand_off(graph, ADVISORY, EXPOSED_ARTIFACT, AT, by="triage-agent")
-    assert hypo["hypothetical"] is True and real["hypothetical"] is False
-    by_artifact = {t["artifact"]: t["hypothetical"] for t in tasks.list_tasks(graph)}
-    assert by_artifact == {"planted/billing-worker": True, EXPOSED_ARTIFACT: False}
+    with pytest.raises(tasks.WorkError, match="hypothetical advisory revision"):
+        tasks.hand_off(graph, ADVISORY, "planted/billing-worker", to_ms("2026-08-04T13:00:00Z"), by="triage-agent")
+    assert tasks.list_tasks(graph) == []
+    # gateway locks keyv@6.0.0, which the advisory names as published, so it is real work
+    assert tasks.hand_off(graph, ADVISORY, EXPOSED_ARTIFACT, AT, by="triage-agent")["created"]
+    assert [t["artifact"] for t in tasks.list_tasks(graph)] == [EXPOSED_ARTIFACT]
+
+
+def test_a_visitors_what_if_cannot_put_work_in_the_shared_queue(graph):
+    # mocha locks keyv@4.5.4; a what-if that names it makes mocha look exposed, but only for the person who asked
+    events = [{"at": "2026-08-04T12:30:00Z", "type": "advisory_revised", "scripted": True, "visitor": True,
+               "advisory": ADVISORY, "add_purls": ["pkg:npm/keyv@4.5.4"]}]
+    seek(graph, to_ms("2026-08-04T12:31:00Z"), events)
+    with pytest.raises(tasks.WorkError, match="hypothetical"):
+        tasks.hand_off(graph, ADVISORY, "mochajs/mocha", to_ms("2026-08-04T12:31:00Z"), by="triage-agent")
+    assert tasks.list_tasks(graph) == []
+
+
+def test_a_real_exposure_keeps_a_real_path_and_fix_even_when_a_what_if_adds_a_second_route(graph):
+    # storefront locks keyv@6.0.0 (named by the advisory) and keyv@4.5.4 (named only by this what-if, through eslint)
+    what_if = [{"at": "2026-08-04T12:30:00Z", "type": "advisory_revised", "scripted": True, "visitor": True,
+                "advisory": ADVISORY, "add_purls": ["pkg:npm/keyv@4.5.4"]}]
+    seek(graph, to_ms("2026-08-04T12:31:00Z"), what_if)
+    r = tasks.hand_off(graph, ADVISORY, "planted/storefront", to_ms("2026-08-04T12:31:00Z"), by="triage-agent")
+    assert r["created"] and r["path"][-1] == "keyv@6.0.0"
+    assert r["fix"] == "@acme/payments-sdk@2.1.0"  # not eslint, which only the hypothetical route goes through

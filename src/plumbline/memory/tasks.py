@@ -85,20 +85,31 @@ def hand_off(graph: Graph, advisory: str, artifact: str, at_ms: int, by: str, no
         raise WorkError(f"{artifact} is {verdict.result.verdict} for {advisory}; only an EXPOSED artifact needs a fix")
     if run_named(graph, "work/count_open").result_set[0][0] >= MAX_OPEN:
         raise WorkError(f"the queue already holds {MAX_OPEN} unfinished tasks")
-    fix = ", ".join(verdict.pulled_by) or "upgrade the affected package"
-    purls = [e.purl for e in verdict.result.evidence]
-    hypothetical = run_named(graph, "work/depends_on_revision", {"advisory": advisory, "purls": purls}).result_set[0][0] > 0
+    # The queue is shared. A what-if (or the scripted revision) is only a story about the advisory, so it must never put
+    # work in front of other agents or people: only versions the advisory names as published count, and the path and the
+    # fix are taken from those alone.
+    real = [r[0] for r in run_named(graph, "work/real_purls", {
+        "advisory": advisory, "purls": [e.purl for e in verdict.result.evidence]}).result_set]
+    if not real:
+        raise WorkError(f"{artifact} is exposed only if a hypothetical advisory revision were real, so no task was created")
+    chains, bumps = [], set()
+    for purl in real:
+        found = run_named(graph, "q2_explain_path", {"artifact": artifact, "purl": purl}).result_set
+        if found:
+            chains.append(found[0][0])
+        bumps |= {f"{name}@{version}" for name, version in run_named(graph, "triage/via_direct", {"artifact": artifact, "purl": purl}).result_set}
+    path = min(chains, key=len) if chains else list(verdict.path or ())
+    fix = ", ".join(sorted(bumps)) or "upgrade the affected package"
     rows = run_named(graph, "work/create_task", {
         "id": task_id(advisory, artifact), "advisory": advisory, "artifact": artifact, "fix": fix,
-        "note": " ".join(note.split())[:MAX_TEXT], "by": by, "now_ms": now_ms(), "hypothetical": hypothetical},
-        read_only=False).result_set
+        "note": " ".join(note.split())[:MAX_TEXT], "by": by, "now_ms": now_ms()}, read_only=False).result_set
     if not rows:
         raise WorkError(f"{advisory} or {artifact} is not in the graph")
     tid, status, claimed_by, created = rows[0]
     package = _package_of(graph, advisory)
     recalled = run_named(graph, "work/find_playbook", {"playbook": playbook_id(package)}).result_set
     return {"task": tid, "status": status, "claimed_by": claimed_by or None, "created": bool(created),
-            "fix": fix, "path": list(verdict.path or ()), "hypothetical": hypothetical,
+            "fix": fix, "path": path,
             "recalled": {"resolution": recalled[0][0], "times_used": recalled[0][1]} if recalled else None}
 
 
@@ -138,10 +149,10 @@ def list_tasks(graph: Graph, status: str = "") -> list[dict]:
     if status not in ("", "open", "claimed", "done"):
         raise WorkError("status must be open, claimed, done, or empty for all")
     out = []
-    for (tid, st, advisory, artifact, fix, note, by, claimed_by, resolution, created, claimed, done, hypo) in \
+    for (tid, st, advisory, artifact, fix, note, by, claimed_by, resolution, created, claimed, done) in \
             run_named(graph, "work/list_tasks", {"status": status}).result_set:
         out.append({"id": tid, "status": st, "advisory": advisory, "artifact": artifact, "fix": fix, "note": note or None,
                     "created_by": by, "claimed_by": claimed_by or None, "resolution": resolution or None,
                     "created": to_iso(created), "claimed": to_iso(claimed) if claimed else None,
-                    "done": to_iso(done) if done else None, "hypothetical": bool(hypo)})
+                    "done": to_iso(done) if done else None})
     return out

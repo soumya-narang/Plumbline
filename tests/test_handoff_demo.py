@@ -30,7 +30,8 @@ def graph():
 @pytest.mark.parametrize("workers", [1, 4, 16])
 def test_every_exposure_is_worked_exactly_once_whatever_the_number_of_agents(graph, workers):
     out = run_demo(graph, AT, workers)
-    assert out["handed_off"] >= 3 and out["newly_queued"] == out["handed_off"]
+    assert out["handed_off"] == 7 and out["newly_queued"] == 7
+    assert out["skipped_hypothetical"] == 1  # billing-worker, which is exposed only by the scripted revision
     assert out["claimed"] == out["newly_queued"] and out["claimed_twice"] == 0 and out["exactly_once"]
     assert sum(out["per_worker"].values()) == out["claimed"]
     assert graph.ro_query("MATCH (t:Task) WHERE t.status <> 'done' RETURN count(t)").result_set == [[0]]

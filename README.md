@@ -265,10 +265,10 @@ deliberately kept in memory only. "Remove my what-ifs" removes only what-ifs, ne
 **The work queue.** A triage agent finds every EXPOSED repository and hands each fix to a queue stored in the graph (`Task` nodes). Remediation agents claim the oldest open task,
 work it, and complete it. Claiming is a single Cypher write, and FalkorDB runs write queries on one graph one at a time, so two agents cannot receive the same task. A test races
 20 threads for 40 tasks and checks each is claimed exactly once. Completing a task records a `Playbook` for that package, and the next hand-off returns it as a suggestion.
-Tasks whose exposure depends on a hypothetical revision are flagged **hypothetical**. The queue is visible under the Decisions tab and via `GET /api/tasks`.
+The queue is shared, so it holds real work only: an exposure that exists only because of a hypothetical revision (the scripted one, or a visitor's what-if) is refused, and the agent says how many it declined. If a repository is exposed both by a real version and by a what-if one, the task's path and fix come from the real version alone. The queue is visible under the Decisions tab and via `GET /api/tasks`.
 
 ```bash
-python -m plumbline handoff-demo --workers 5     # 8 exposures, 5 concurrent agents, every task worked exactly once
+python -m plumbline handoff-demo --workers 5     # 7 real exposures (1 resting on the hypothetical revision is skipped), 5 concurrent agents, every task worked exactly once
 ```
 
 **Tenants.** The lockfile checker gives each upload its own graph (see above), and approvals and what-ifs are kept per visitor.

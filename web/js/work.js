@@ -11,7 +11,7 @@ function row(t) {
   const who = t.status === "open" ? `handed over by ${esc(t.created_by)}`
     : t.status === "claimed" ? `${esc(t.claimed_by)} is working on it`
       : `${esc(t.claimed_by)}: ${esc(t.resolution ?? "")}`;
-  return `<li class="witem ${t.status}"><span class="wtag">${WORD[t.status]}${t.hypothetical ? ' <span class="hypo-tag">hypothetical</span>' : ""}</span>
+  return `<li class="witem ${t.status}"><span class="wtag">${WORD[t.status]}</span>
     <span class="who">${esc(t.artifact)}</span>
     <span class="by">Bump ${esc(t.fix)} · ${who}</span></li>`;
 }

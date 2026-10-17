@@ -79,7 +79,8 @@ def _cmd_handoff_demo(args: argparse.Namespace) -> None:
     at_ms = to_ms(args.at)
     seek(graph, at_ms)
     out = run_demo(graph, at_ms, args.workers)
-    print(f"triage agent handed off {out['handed_off']} exposures ({out['newly_queued']} new)")
+    print(f"triage agent handed off {out['handed_off']} real exposures ({out['newly_queued']} new)"
+          + (f"; {out['skipped_hypothetical']} resting on a hypothetical revision were not queued" if out["skipped_hypothetical"] else ""))
     for name, n in out["per_worker"].items():
         print(f"  {name}: completed {n}")
     print(f"claimed {out['claimed']}, twice: {out['claimed_twice']}  ->  "

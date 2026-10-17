@@ -19,10 +19,17 @@ from plumbline.triage.engine import triage_advisory
 def run_demo(graph: Graph, at_ms: int, workers: int = 4, round_name: str = "first") -> dict:
     """Hand off every exposure at ``at_ms``, then let ``workers`` agents drain the queue concurrently."""
     handed = []
+    skipped_hypothetical = 0
     for adv in advisories_at(graph, at_ms):
         for v in triage_advisory(graph, adv["id"], at_ms).verdicts:
-            if v.result.verdict == "EXPOSED":
+            if v.result.verdict != "EXPOSED":
+                continue
+            try:
                 handed.append(tasks.hand_off(graph, adv["id"], v.artifact, at_ms, by="triage-agent"))
+            except tasks.WorkError as exc:
+                if "hypothetical" not in str(exc):
+                    raise
+                skipped_hypothetical += 1
 
     def worker(name: str) -> list[dict]:
         done = []
@@ -37,7 +44,7 @@ def run_demo(graph: Graph, at_ms: int, workers: int = 4, round_name: str = "firs
     claimed = [d["claimed"] for done in per_worker.values() for d in done]
     new_tasks = [h for h in handed if h["created"]]
     return {
-        "handed_off": len(handed), "newly_queued": len(new_tasks),
+        "handed_off": len(handed), "newly_queued": len(new_tasks), "skipped_hypothetical": skipped_hypothetical,
         "recalled_playbooks": sorted({h["recalled"]["resolution"] for h in handed if h["recalled"]}),
         "per_worker": {name: len(done) for name, done in per_worker.items()},
         "claimed": len(claimed), "claimed_twice": len(claimed) - len(set(claimed)),

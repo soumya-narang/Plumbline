@@ -190,13 +190,18 @@ def _data(result):
 
 def test_the_planner_hands_every_exposed_artifact_to_the_queue_and_lists_it():
     from plumbline.graph.client import connect
+    from plumbline.memory.replay import seek
+    from plumbline.timeutil import to_ms
 
     g = connect()
     g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+    seek(g, to_ms(AFTER), [])  # the graph now carries the scripted 12:45 revision
     try:
         r = run(ask("Hand off the fixes for keyv", AFTER))
         assert "hand_off_fix" in [c.name for c in r.calls]
         assert "planted/gateway: fix queued, bump @acme/http-client@1.4.0" in r.answer
+        assert "1 exposure would exist only if a hypothetical advisory revision were real" in r.answer
+        assert "billing-worker" not in r.answer.split("hypothetical")[0]
         again = run(ask("Hand off the fixes for keyv", AFTER))
         assert "already in the queue (open)" in again.answer
         q = run(ask("What is in the work queue?", AFTER))
@@ -238,3 +243,22 @@ def test_a_work_tool_refuses_an_artifact_that_is_not_exposed_as_data_not_a_crash
                 "advisory": "MAL-2026-11524", "artifact": "planted/orders-api", "at": AFTER}))
 
     assert "only an EXPOSED artifact" in run(go())["error"]
+
+
+def test_a_what_if_cannot_make_the_planner_flood_the_queue():
+    from plumbline.graph.client import connect
+    from plumbline.memory.replay import seek
+    from plumbline.timeutil import to_ms
+
+    g = connect()
+    g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+    try:
+        what_if = [{"at": "2026-08-04T12:30:00Z", "type": "advisory_revised", "scripted": True, "visitor": True,
+                    "advisory": "MAL-2026-11524", "add_purls": ["pkg:npm/keyv@4.5.4"]}]
+        seek(g, to_ms(AFTER), what_if)  # twelve more repositories now look exposed, for this visitor only
+        r = run(ask("Hand off the fixes for keyv", AFTER))
+        assert "exposures would exist only if a hypothetical advisory revision were real" in r.answer
+        queued = g.ro_query("MATCH (t:Task) RETURN t.artifact ORDER BY t.artifact").result_set
+        assert [row[0] for row in queued] == ["planted/gateway", "planted/storefront"]  # only the real ones
+    finally:
+        g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
