@@ -230,6 +230,8 @@ async function boot() {
   mode.textContent = live ? "Live graph" : "Recorded snapshots";
   mode.classList.toggle("live", live);
   $("badge-agent").textContent = meta.agent.backend === "llm" ? `Agent: ${meta.agent.model}` : "Agent: built-in planner, no model";
+  document.querySelector(".tryit-live").hidden = !live;
+  document.querySelector(".tryit-static").hidden = live;
   $("nav-check").hidden = !live; // the checker needs the live server
   if (meta.repo) { const a = $("repo-link"); a.href = meta.repo; a.hidden = false; }
 

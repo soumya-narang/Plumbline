@@ -551,3 +551,11 @@ details.proof[open] > summary::before { transform: rotate(45deg); }
 details.proof h5 { margin: 22px 0 10px; font-size: .85rem; font-weight: 600; color: var(--ink-3); }
 .panel .section { margin-top: 26px; }
 .panel .statement { margin-top: 14px; }
+
+.tryit { margin-top: 56px; padding: 28px 30px; border-radius: 22px; background: var(--chip); max-width: 640px; }
+.tryit h3 { font-size: 1.25rem; font-weight: 650; letter-spacing: -.02em; margin-bottom: 12px; }
+.tryit ol { padding-left: 22px; display: grid; gap: 6px; color: var(--ink-2); }
+.tryit ol b { color: var(--ink); font-weight: 600; }
+.tryit p { margin-top: 18px; color: var(--ink-2); }
+.tryit [hidden] { display: none; }
+.tryit .btn-hero { background: var(--ink); color: var(--bg); }
