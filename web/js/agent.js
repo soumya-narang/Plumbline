@@ -22,7 +22,7 @@ function resultHtml(run) {
   const calls = run.calls.map((c) => `<div class="call"><b>${esc(c.name)}</b>(${esc(shortArgs(c.args))}) → ${esc(summarise(c))}${c.ms != null ? ` <span class="ms">${c.ms} ms</span>` : ""}</div>`).join("");
   const who = run.backend === "llm"
     ? `Written by ${esc(run.model)}, which also chose the tools.`
-    : "Written by the built-in planner. No model was involved.";
+    : `${run.note ? `${esc(run.note)} ` : ""}Written by the built-in planner. No model was involved.`;
   return `<div class="trace" aria-label="Tool calls made over MCP">${calls}</div>
     <p class="answer">${esc(run.answer)}</p>
     <span class="answer-by">${who} Verdicts elsewhere on the page come from the tool results, not from this sentence.</span>`;

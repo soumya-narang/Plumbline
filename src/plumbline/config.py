@@ -26,6 +26,7 @@ class Settings:
     llm_base_url: str | None
     llm_api_key: str | None
     llm_model: str | None
+    llm_timeout: float = 120.0
 
     @property
     def llm_configured(self) -> bool:
@@ -40,4 +41,5 @@ def load_settings() -> Settings:
         llm_base_url=os.getenv("LLM_BASE_URL") or None,
         llm_api_key=os.getenv("LLM_API_KEY") or None,
         llm_model=os.getenv("LLM_MODEL") or None,
+        llm_timeout=float(os.getenv("LLM_TIMEOUT") or 120),
     )

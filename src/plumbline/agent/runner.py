@@ -44,6 +44,7 @@ class AgentRun:
     model: str | None
     calls: list[ToolCall] = field(default_factory=list)
     answer: str = ""
+    note: str | None = None  # set when the model could not be used and the planner answered instead
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -220,11 +221,25 @@ def _chat_tools(tool_list) -> list[dict]:
         "name": t.name, "description": t.description or "", "parameters": t.input_schema}} for t in tool_list]
 
 
+class ModelUnusable(Exception):
+    """The model backend failed or produced something the agent will not present; the message says why."""
+
+
+def _parse_args(raw: str | None) -> dict:
+    try:
+        args = json.loads(raw or "{}")
+    except json.JSONDecodeError as exc:
+        raise ModelUnusable("the model sent tool arguments that are not valid JSON") from exc
+    if not isinstance(args, dict):
+        raise ModelUnusable("the model sent tool arguments that are not an object")
+    return args
+
+
 async def run_llm(client: Client, run: AgentRun, settings: config.Settings, transport: httpx.AsyncBaseTransport | None = None) -> None:
     tools = _chat_tools((await client.list_tools()).tools)
     messages = [{"role": "system", "content": SYSTEM_PROMPT.format(at=run.at)}, {"role": "user", "content": run.question}]
     headers = {"Authorization": f"Bearer {settings.llm_api_key}"} if settings.llm_api_key else {}
-    async with httpx.AsyncClient(base_url=settings.llm_base_url, headers=headers, timeout=60, transport=transport) as http:
+    async with httpx.AsyncClient(base_url=settings.llm_base_url, headers=headers, timeout=settings.llm_timeout, transport=transport) as http:
         for _ in range(MAX_STEPS):
             resp = await http.post("/chat/completions", json={
                 "model": settings.llm_model, "messages": messages, "tools": tools, "tool_choice": "auto", "temperature": 0})
@@ -232,10 +247,13 @@ async def run_llm(client: Client, run: AgentRun, settings: config.Settings, tran
             msg = resp.json()["choices"][0]["message"]
             messages.append(msg)
             if not msg.get("tool_calls"):
+                if not run.calls:
+                    # A model that answers without touching the graph has nothing to ground its words in.
+                    raise ModelUnusable("the model answered without calling any tool, so its answer is not grounded in the graph")
                 run.answer = (msg.get("content") or "").strip()
                 return
             for tc in msg["tool_calls"]:
-                args = json.loads(tc["function"].get("arguments") or "{}")
+                args = _parse_args(tc["function"].get("arguments"))
                 data = await call_tool(client, run, tc["function"]["name"], args)
                 messages.append({"role": "tool", "tool_call_id": tc["id"], "content": json.dumps(data)[:12000]})
     run.answer = "The model did not finish within the step limit."
@@ -249,5 +267,14 @@ async def ask(question: str, at: str, settings: config.Settings | None = None,
         raise RuntimeError("LLM_BASE_URL and LLM_MODEL are not configured")
     run = AgentRun(question, at, "llm" if use_llm else "planner", settings.llm_model if use_llm else None)
     async with Client(build_server()) as client:
-        await (run_llm(client, run, settings, transport) if use_llm else run_planner(client, run))
+        if not use_llm:
+            await run_planner(client, run)
+            return run
+        try:
+            await run_llm(client, run, settings, transport)
+        except (httpx.HTTPError, ModelUnusable, KeyError, IndexError, ValueError) as exc:
+            # The model is optional. When it fails, answer with the planner and say so rather than error or bluff.
+            reason = str(exc) or type(exc).__name__
+            run = AgentRun(question, at, "planner", None, note=f"The model ({settings.llm_model}) could not be used: {reason}.")
+            await run_planner(client, run)
     return run

@@ -126,3 +126,56 @@ def test_model_backend_requires_configuration():
     settings = replace(config.load_settings(), llm_base_url=None, llm_model=None)
     with pytest.raises(RuntimeError):
         run(ask("hi", BEFORE, settings=settings, backend="llm"))
+
+
+def _model_settings():
+    return replace(config.load_settings(), llm_base_url="http://model.test/v1", llm_api_key="k", llm_model="m")
+
+
+def _answer_with(handler):
+    return run(ask("What is exposed?", BEFORE, settings=_model_settings(), backend="llm", transport=httpx.MockTransport(handler)))
+
+
+def test_a_model_that_is_down_falls_back_to_the_planner_and_says_so():
+    def handler(request):
+        raise httpx.ConnectError("connection refused")
+
+    r = _answer_with(handler)
+    assert r.backend == "planner" and r.model is None and r.calls
+    assert "could not be used" in r.note and "connection refused" in r.note
+
+
+def test_a_model_that_times_out_falls_back():
+    def handler(request):
+        raise httpx.ReadTimeout("slow")
+
+    assert _answer_with(handler).backend == "planner"
+
+
+def test_a_server_error_from_the_model_falls_back():
+    r = _answer_with(lambda request: httpx.Response(500, json={"error": "overloaded"}))
+    assert r.backend == "planner" and "500" in r.note
+
+
+def test_a_model_that_answers_without_using_a_tool_is_not_believed():
+    msg = {"role": "assistant", "content": "Everything is fine, trust me."}
+    r = _answer_with(lambda request: httpx.Response(200, json={"choices": [{"message": msg}]}))
+    assert r.backend == "planner" and "not grounded" in r.note and "Everything is fine" not in r.answer
+
+
+def test_tool_arguments_that_are_not_json_fall_back():
+    msg = {"role": "assistant", "content": None, "tool_calls": [{
+        "id": "c", "type": "function", "function": {"name": "triage_advisory", "arguments": "{not json"}}]}
+    r = _answer_with(lambda request: httpx.Response(200, json={"choices": [{"message": msg}]}))
+    assert r.backend == "planner" and "not valid JSON" in r.note
+
+
+def test_a_reply_with_no_choices_falls_back():
+    assert _answer_with(lambda request: httpx.Response(200, json={"choices": []})).backend == "planner"
+
+
+def test_the_model_timeout_comes_from_settings(monkeypatch):
+    monkeypatch.setenv("LLM_TIMEOUT", "450")
+    assert config.load_settings().llm_timeout == 450.0
+    monkeypatch.delenv("LLM_TIMEOUT")
+    assert config.load_settings().llm_timeout == 120.0
