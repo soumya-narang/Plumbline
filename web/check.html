@@ -57,14 +57,14 @@
 <main>
   <p class="note"><a href="/">&larr; Plumbline</a></p>
   <h1>Check your own lockfile</h1>
-  <p class="lead">Is the poisoned <code>keyv</code> / <code>@cacheable</code> release (4 August 2026) anywhere in your project, and how does it get in? Your lockfile is loaded into its own FalkorDB graph, the graph is queried, and the answer comes back with the path. Deleted after two hours. Nothing is installed or run.</p>
+  <p class="lead">Is the poisoned <code>keyv</code> / <code>@cacheable</code> release (4 August 2026) anywhere in your project, and how does it get in? Your lockfile is loaded into its own FalkorDB graph, the graph is queried, and the answer comes back with the path. Deleted after 30 minutes. Up to three checks per visitor. Nothing is installed or run.</p>
 
   <div class="box">
     <details class="accept">
       <summary>What can I upload?</summary>
       <ul>
         <li><b>A <code>package-lock.json</code></b> (or <code>npm-shrinkwrap.json</code>) written by npm 7 or newer, i.e. <code>"lockfileVersion": 2</code> or <code>3</code>. This is the file npm creates next to <code>package.json</code> after <code>npm install</code>.</li>
-        <li>Plain JSON, up to 4 MB and 8,000 packages.</li>
+        <li>Plain JSON, up to 4 MB, 8,000 packages and 20,000 dependency links (real projects are well under half of that).</li>
         <li><b>Not supported:</b> <code>yarn.lock</code>, <code>pnpm-lock.yaml</code>, and old v1 lockfiles from npm 6. For a v1 file, run <code>npm install --package-lock-only</code> with a recent npm to regenerate it.</li>
         <li>A lockfile is a list of exact versions, so it contains no secrets. Still, only paste projects you are happy to analyse.</li>
       </ul>

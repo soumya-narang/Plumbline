@@ -34,12 +34,15 @@ TEMPLATE = "plumbline_template"
 ARTIFACT_ID = "your/project"
 MAX_BYTES = 4_000_000
 MAX_PACKAGES = 8_000
+MAX_EDGES = 20_000  # the largest real lockfile we have has under 5,000; a denser upload only costs everyone time
 MAX_TENANTS = 25
-TTL_MS = 2 * 60 * 60 * 1000
-_ID = re.compile(r"^[0-9a-f]{8}$")
+MAX_PER_OWNER = 3
+TTL_MS = 30 * 60 * 1000
+_ID = re.compile(r"^[0-9a-f]{32}$")
 
-_lock = threading.Lock()
+_lock = threading.Lock()  # guards the template, the capacity count and id reservation; never held while loading
 _template_ready = False
+_loading: dict[str, str] = {}  # id -> owner of graphs that exist but are still being filled; a sweep leaves them alone
 
 
 class TenantError(ValueError):
@@ -75,19 +78,26 @@ def _info(name: str) -> dict | None:
     rows = run_named(connect(name), "tenant/info").result_set
     if not rows:
         return None
-    artifact, label, created_ms, packages = rows[0]
-    return {"artifact": artifact, "label": label, "created_ms": created_ms, "packages": packages}
+    artifact, label, created_ms, owner, packages = rows[0]
+    return {"artifact": artifact, "label": label, "created_ms": created_ms, "owner": owner, "packages": packages}
 
 
 def sweep() -> int:
     """Delete tenant graphs older than the time limit. Returns how many were removed."""
     removed = 0
     for name in _tenant_names():
+        if name.removeprefix(PREFIX) in _loading:
+            continue
         info = _info(name)
         if info is None or now_ms() - (info["created_ms"] or 0) > TTL_MS:
             connect(name).delete()
             removed += 1
     return removed
+
+
+def _minutes_until_free(infos: list[dict]) -> int:
+    soonest = min((i["created_ms"] + TTL_MS for i in infos if i and i["created_ms"]), default=now_ms())
+    return max(1, -(-(soonest - now_ms()) // 60_000))
 
 
 def _validate(raw: bytes):
@@ -97,6 +107,8 @@ def _validate(raw: bytes):
         parsed = parse_npm_lock(raw)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise TenantError("that is not valid JSON") from exc
+    except RecursionError as exc:
+        raise TenantError("that JSON is nested too deeply to be a lockfile") from exc
     except UnsupportedLockfile as exc:
         raise TenantError("only npm lockfiles (package-lock.json, lockfileVersion 2 or 3) can be read") from exc
     except (KeyError, TypeError, AttributeError) as exc:
@@ -106,25 +118,54 @@ def _validate(raw: bytes):
         raise TenantError("the lockfile lists no packages")
     if len(third_party) > MAX_PACKAGES:
         raise TenantError(f"the lockfile has more than {MAX_PACKAGES:,} packages")
+    if len(parsed.edges) > MAX_EDGES:
+        raise TenantError(f"the lockfile has more than {MAX_EDGES:,} dependency links, far beyond a real project")
     return parsed
 
 
-def create(raw: bytes, label: str = "") -> dict:
-    """Validate an upload, give it its own graph and return its first report."""
-    parsed = _validate(raw)
-    label = re.sub(r"[^\w .@/-]", "", label)[:60] or "your project"
+def _reserve(owner: str, artifact: dict, label: str) -> tuple[str, Graph]:
+    """Check the limits and create the graph with its artifact and stamp already in place, quickly, under the lock.
+
+    The stamp must exist before the lock is released: FalkorDB panics (and takes every graph down with it) when a query
+    returns a property that has never been set on that graph, and a concurrent upload's capacity check reads this one."""
     with _lock:
         ensure_template()
         sweep()
-        if len(_tenant_names()) >= MAX_TENANTS:
-            raise TenantError("too many projects are being checked right now; try again in a few minutes")
-        tenant_id = secrets.token_hex(4)
+        names = _tenant_names()
+        infos = [_info(n) for n in names]
+        mine = [i for i in infos if i and owner and i["owner"] == owner]
+        pending = sum(1 for o in _loading.values() if o == owner)
+        if owner and len(mine) + pending >= MAX_PER_OWNER:
+            raise TenantError(f"you already have {MAX_PER_OWNER} checks open; delete one or wait {_minutes_until_free(mine)} min")
+        if len(names) >= MAX_TENANTS:
+            raise TenantError(f"too many projects are being checked right now; try again in {_minutes_until_free(infos)} min")
+        tenant_id = secrets.token_hex(16)
         graph = connect(TEMPLATE).copy(PREFIX + tenant_id)  # GRAPH.COPY: schema, indexes and advisories come along
-        load_artifact_rows(graph, [{
-            "id": ARTIFACT_ID, "kind": "upload", "sha": None, "committed_at": None, "lockfile": "package-lock.json",
-            "lock_state": "present", "lock_sha256": hashlib.sha256(raw).hexdigest(), "synthetic": False}])
+        _loading[tenant_id] = owner
+        try:
+            load_artifact_rows(graph, [artifact])
+            run_named(graph, "tenant/stamp", {"now_ms": now_ms(), "label": label, "owner": owner}, read_only=False)
+        except Exception:
+            _loading.pop(tenant_id, None)
+            graph.delete()
+            raise
+        return tenant_id, graph
+
+
+def create(raw: bytes, label: str = "", owner: str = "") -> dict:
+    """Validate an upload, give it its own graph and return its first report."""
+    parsed = _validate(raw)
+    label = re.sub(r"[^\w .@/-]", "", label)[:60] or "your project"
+    tenant_id, graph = _reserve(owner, {
+        "id": ARTIFACT_ID, "kind": "upload", "sha": None, "committed_at": None, "lockfile": "package-lock.json",
+        "lock_state": "present", "lock_sha256": hashlib.sha256(raw).hexdigest(), "synthetic": False}, label)
+    try:
         load_lockgraph_rows(graph, rows_for(ARTIFACT_ID, parsed))
-        run_named(graph, "tenant/stamp", {"now_ms": now_ms(), "label": label}, read_only=False)
+    except Exception:
+        graph.delete()  # never leave a half-filled graph holding a slot
+        raise
+    finally:
+        _loading.pop(tenant_id, None)
     return report(tenant_id)
 
 

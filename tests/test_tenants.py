@@ -95,7 +95,7 @@ def test_unusable_uploads_are_rejected_with_a_reason(raw, why):
 
 
 def test_tenant_ids_cannot_be_used_to_reach_other_graphs():
-    for bad in ("plumbline", "../x", "efff2a6", "ZZZZZZZZ", "abcdef123"):
+    for bad in ("plumbline", "../x", "efff2a6", "ZZZZZZZZ", "abcdef123", "0123abcd", "g" * 32, "0" * 33):
         with pytest.raises(tenants.TenantError):
             tenants.report(bad)
 
@@ -156,3 +156,99 @@ def test_the_report_carries_the_graph_queries_that_ran():
     assert [q["name"] for q in r["work"]["queries"]] == ["relevant_locks", "q2_explain_path", "via_direct"]
     assert all("MATCH" in q["cypher"] for q in r["work"]["queries"])
     assert r["work"]["graph"]["installs"] == 5 and r["work"]["graph"]["requirements"] == 3
+
+
+def test_check_ids_are_long_enough_not_to_be_guessed():
+    r = tenants.create(CLEAN)
+    assert len(r["tenant"]) == 32 and int(r["tenant"], 16) >= 0
+
+
+def test_one_client_cannot_hold_more_than_its_share():
+    for _ in range(tenants.MAX_PER_OWNER):
+        tenants.create(CLEAN, owner="alice")
+    with pytest.raises(tenants.TenantError, match=r"already have 3 checks open; delete one or wait \d+ min"):
+        tenants.create(CLEAN, owner="alice")
+    assert tenants.create(CLEAN, owner="bob")["summary"]["EXPOSED"] == 0  # another client is unaffected
+
+
+def test_deleting_a_check_frees_the_clients_slot():
+    ids = [tenants.create(CLEAN, owner="carol")["tenant"] for _ in range(tenants.MAX_PER_OWNER)]
+    tenants.delete(ids[0])
+    assert tenants.create(CLEAN, owner="carol")["tenant"]
+
+
+def test_the_global_cap_says_how_long_to_wait(monkeypatch):
+    monkeypatch.setattr(tenants, "MAX_TENANTS", 2)
+    monkeypatch.setattr(tenants, "MAX_PER_OWNER", 10)
+    tenants.create(CLEAN, owner="a")
+    tenants.create(CLEAN, owner="b")
+    with pytest.raises(tenants.TenantError, match=r"try again in \d+ min"):
+        tenants.create(CLEAN, owner="c")
+
+
+def test_a_lockfile_with_an_absurd_number_of_links_is_refused_before_any_graph_work():
+    n = 400
+    pk = {"": {"dependencies": {f"p{i}": "1" for i in range(n)}}}
+    for i in range(n):
+        pk[f"node_modules/p{i}"] = {"version": "1.0.0", "dependencies": {f"p{(i * 7 + j) % n}": "1" for j in range(1, 80)}}
+    before = len(tenants._tenant_names())
+    with pytest.raises(tenants.TenantError, match="dependency links"):
+        tenants.create(json.dumps({"lockfileVersion": 3, "packages": pk}).encode())
+    assert len(tenants._tenant_names()) == before
+
+
+def test_deeply_nested_json_is_a_clean_refusal_not_a_crash():
+    with pytest.raises(tenants.TenantError, match="nested too deeply"):
+        tenants.create(b"[" * 100_000 + b"]" * 100_000)
+    resp = TestClient(create_app(), raise_server_exceptions=False).post("/api/check", json={"lockfile": "[" * 100_000 + "]" * 100_000})
+    assert resp.status_code == 422 and "nested too deeply" in resp.json()["detail"]
+
+
+def test_a_slow_upload_does_not_block_another_one(monkeypatch):
+    import threading
+    import time
+
+    real = tenants.load_lockgraph_rows
+    gate = threading.Event()
+    calls = []
+
+    def slow_first(graph, rows):
+        calls.append(1)
+        if len(calls) == 1:
+            gate.wait(10)
+        return real(graph, rows)
+
+    monkeypatch.setattr(tenants, "load_lockgraph_rows", slow_first)
+    with concurrent.futures.ThreadPoolExecutor(2) as pool:
+        slow = pool.submit(tenants.create, CLEAN)
+        while not calls:
+            time.sleep(0.01)
+        started = time.time()
+        quick = pool.submit(tenants.create, CLEAN).result(timeout=8)
+        assert time.time() - started < 5 and quick["tenant"]
+        gate.set()
+        assert slow.result(timeout=10)["tenant"] != quick["tenant"]
+
+
+def test_a_graph_that_is_still_loading_is_not_swept(monkeypatch):
+    tenants.ensure_template()
+    tid = "f" * 32
+    connect(tenants.TEMPLATE).copy(tenants.PREFIX + tid)
+    tenants._loading[tid] = "x"
+    try:
+        monkeypatch.setattr(tenants, "TTL_MS", -1)
+        tenants.sweep()
+        assert tenants.PREFIX + tid in tenants._tenant_names()
+    finally:
+        tenants._loading.pop(tid, None)
+
+
+def test_a_failed_load_leaves_no_graph_and_frees_the_slot(monkeypatch):
+    def boom(graph, rows):
+        raise RuntimeError("database went away")
+
+    monkeypatch.setattr(tenants, "load_lockgraph_rows", boom)
+    before = len(tenants._tenant_names())
+    with pytest.raises(RuntimeError):
+        tenants.create(CLEAN, owner="dave")
+    assert len(tenants._tenant_names()) == before and not tenants._loading

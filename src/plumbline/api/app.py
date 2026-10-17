@@ -7,10 +7,12 @@ under one lock, and snapshots are cached per timestamp.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import os
 import threading
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -27,7 +29,7 @@ from plumbline.triage.engine import triage_artifact
 from plumbline.triage.receipt import make_receipt, verify
 
 WEB_DIR = config.ROOT / "web"
-LLM_MAX_PER_HOUR = int(__import__("os").getenv("LLM_MAX_ASKS_PER_HOUR", "60"))
+LLM_MAX_PER_HOUR = int(os.getenv("LLM_MAX_ASKS_PER_HOUR", "60"))
 
 _lock = threading.RLock()
 _cache: dict[tuple[int, int], dict] = {}
@@ -55,6 +57,15 @@ class CheckBody(BaseModel):
 class VerifyBody(BaseModel):
     payload: dict
     hash: str
+
+
+def _client_id(request: Request) -> str:
+    """A short, non-reversible id for the caller, used to share limits fairly. Behind a trusted proxy the real client
+    address is the first entry of X-Forwarded-For; otherwise it is the socket's peer."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    host = forwarded.split(",")[0].strip() if forwarded and os.getenv("PLUMBLINE_TRUST_PROXY") == "1" else ""
+    host = host or (request.client.host if request.client else "unknown")
+    return hashlib.sha256(host.encode()).hexdigest()[:12]
 
 
 def _snapshot(at_ms: int) -> dict:
@@ -142,10 +153,10 @@ def create_app() -> FastAPI:
             return {"decision": proposal.decision_id, "snapshot": snap}
 
     @app.post("/api/check")
-    def post_check(body: CheckBody) -> dict:
+    def post_check(body: CheckBody, request: Request) -> dict:
         """Check your own lockfile: it gets its own graph and is judged against the incident's advisories."""
         try:
-            return tenants.create(body.lockfile.encode("utf-8"), body.label)
+            return tenants.create(body.lockfile.encode("utf-8"), body.label, _client_id(request))
         except tenants.TenantError as exc:
             raise HTTPException(422, str(exc)) from exc
 
