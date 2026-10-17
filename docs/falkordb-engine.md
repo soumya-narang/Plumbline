@@ -7,12 +7,11 @@ Everything marked **verified** was run, not read from documentation.
 
 | Item | Value |
 |---|---|
-| Image | `falkordb/falkordb:latest` |
-| Image id | `sha256:107455e862a824e45e8e9f5a7fbfdf5e00a08b14e13eae2577c72fd9e3f59ba6` |
+| Image | `falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a` (all 227 tests pass against it; the id recorded on 2026-10-15 was `sha256:1074...59ba6`, an earlier build of `latest`) |
 | `graph` module version | `60002` (from `MODULE LIST`) |
 | Host ports | `6390` (database), `3010` (browser); `6379` is taken by another Redis on the dev machine |
 
-The demo host must pin the image by the digest above, not by `latest`.
+The image is pinned by digest in `Dockerfile` and `docker-compose.yml`.
 Which engine implementation (C or the Rust preview) this image runs is **not established**; make no claim about it.
 
 ## Procedures (verified via `CALL dbms.procedures()`)

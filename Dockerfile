@@ -1,7 +1,7 @@
 # One container: FalkorDB (copied from the official image) plus the Plumbline API and UI.
 # Runs as an unprivileged user and listens on $PORT (default 7860).
 
-FROM falkordb/falkordb:latest AS database
+FROM falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a AS database
 
 FROM python:3.13-slim-trixie
 RUN apt-get update \

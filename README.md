@@ -29,8 +29,9 @@ Built for [Graph Hacks: Context for AI Agents](https://www.wemakedevs.org/hackat
 13. [Run it](#run-it)
 14. [Repository layout](#repository-layout)
 15. [What is real, declared, scripted, and not done](#what-is-real-declared-scripted-and-not-done)
-16. [Hackathon tracks](#hackathon-tracks)
-17. [Further documents](#further-documents)
+16. [AI assistance, data sources and license](#ai-assistance-data-sources-and-license)
+17. [Hackathon tracks](#hackathon-tracks)
+18. [Further documents](#further-documents)
 
 ---
 
@@ -473,6 +474,21 @@ scripts/               probe_fleet.py, make_storefront_fixture.py, make_check_sa
 - The benchmark graded 10 of 18 repositories (the other 8 are excluded for stated reasons).
 - Integration tests require a running FalkorDB.
 - The recorded GitHub Pages copy has no checker, no free-text agent, no approvals and no work queue; it says so where those would be.
+
+---
+
+## AI assistance, data sources and license
+
+**AI usage.** An AI coding assistant helped write code, tests, documentation and the website's visual design.
+The idea, the choice of incident, the data model and what is claimed in this README were decided and reviewed by the author. The shipped agent is a rule-based planner,
+not a language model (see the limits above).
+
+**Data sources.**
+- Advisories: the [OSV database](https://osv.dev) (the six records for the 4 August 2026 incident), used for their published fields only.
+- Dependency data: the public lockfiles of the 14 repositories named in `data/fleet.json`, each pinned to a commit; they remain under their own projects' licenses. Raw downloads are not committed (`data/raw` is git-ignored); the processed edges are, and one planted fixture is derived from a real lockfile.
+- Service names, exposure and tiers are the author's declared mapping (`data/overlay.json`); the four planted fixtures are hand-authored.
+
+**License.** MIT, see [LICENSE](LICENSE). FalkorDB is used as a separate database image, pinned by digest in `docker-compose.yml` and the `Dockerfile`.
 
 ---
 
