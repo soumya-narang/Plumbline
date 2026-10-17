@@ -40,6 +40,21 @@ Everything below is produced by `python -m plumbline load` from the JSONL under 
 Range indexes on `Artifact.id`, `Advisory.id`, `PackageVersion.purl`, `LockedDep.id`, `Service.id`, `Exposure.id`.
 Unique constraints on the first four.
 
+## Work queue and procedural memory
+
+Written by agents through the MCP work tools (`src/plumbline/memory/tasks.py`), not by the loader, and never touched by a replay.
+
+| Label | Key | Other properties |
+|---|---|---|
+| `Task` | `id` (`task:<advisory>:<artifact>`) | `status` (`open`, `claimed`, `done`), `advisory`, `artifact`, `fix`, `note`, `created_by`, `claimed_by`, `resolution`, `created_ms`, `claimed_ms`, `done_ms` |
+| `Playbook` | `id` (`bump:<package>`) | `package`, `uses`, `last_resolution`, `last_ms` |
+
+`(Task)-[:ABOUT]->(Advisory)`, `(Task)-[:FOR]->(Artifact)`, `(Task)-[:USED]->(Playbook)`. A hand-off is only accepted for an
+artifact whose verdict is EXPOSED, and the fix is read from the graph, not from the caller. Claiming is one Cypher write
+(`queries/work/claim_task.cypher`); FalkorDB runs write queries on a graph one at a time, so two agents cannot receive the
+same task (`tests/test_tasks.py` races 20 threads for 40 tasks). Completing a task records a `Playbook`, and the next
+hand-off for the same package returns it as `recalled`.
+
 ## Assumptions and the Reopen
 
 A decision records the facts it rests on as `ASSUMES` edges:
@@ -58,7 +73,7 @@ a later revision is invisible before the edge's `since_ms`. That is what lets th
 
 ## Not yet modelled
 
-`Team` (code owners), `Task` handoff and `Playbook` (procedural memory). Upload tenants are separate graphs copied from a template, not nodes in this graph (`src/plumbline/tenants.py`).
+`Team` (code owners). Upload tenants are separate graphs copied from a template, not nodes in this graph (`src/plumbline/tenants.py`).
 
 ## Honest limits
 

@@ -6,6 +6,7 @@ import { renderFleet, rowKey } from "./fleet.js";
 import { VERDICT_RANK, esc, factView, plural } from "./format.js";
 import { createMap } from "./map.js";
 import { initBench } from "./bench.js";
+import { refreshWork } from "./work.js";
 import { initHood } from "./hood.js";
 import { createRail } from "./rail.js";
 import { createSpring } from "./spring.js";
@@ -57,6 +58,7 @@ function setTab(name) {
     $(`tab-${t}`).setAttribute("aria-selected", String(t === name));
     $(`panel-${t}`).hidden = t !== name;
   });
+  if (name === "decisions") refreshWork();
   moveInk();
 }
 

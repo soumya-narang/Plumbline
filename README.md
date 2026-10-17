@@ -50,7 +50,7 @@ python -m plumbline serve            # http://127.0.0.1:8000
 
 Step through the incident with the timeline (or press play). The page also runs with no server from recorded snapshots;
 see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
-exposing eight read-only tools, including a fleet-wide fix-first query and PageRank. Approving a decision is a human action and is deliberately not a tool.
+exposing eight read-only tools (including a fleet-wide fix-first query and PageRank) and four that touch only a shared work queue, through which a triage agent hands fixes to remediation agents. Approving a decision is a human action and is deliberately not a tool.
 
 On a shared deployment each visitor has their own approval history (kept by a session cookie and replayed for that visitor
 alone), approvals are limited to ten per hour per address, and `PLUMBLINE_APPROVALS=off` makes the site read-only.
@@ -78,6 +78,17 @@ The queries the product depends on, all in `queries/`:
 | `q6_fix_first` | Which direct dependency to bump to clear the most exposure |
 | `q7_critical_dependencies` | PageRank over the dependency graph: which packages the fleet leans on most |
 | `tenant/*` | Per-upload graphs created with `GRAPH.COPY` from a template graph |
+
+## Agents handing work to each other
+
+A triage agent finds exposures and hands each fix to a shared queue in the graph; remediation agents claim, work and complete
+them, and what worked is remembered as a playbook for the next time that package is hit. The agents share nothing but the graph.
+
+```bash
+python -m plumbline handoff-demo --workers 5     # 8 exposures, 5 concurrent agents, every task worked exactly once
+```
+
+In the app, ask the agent to "hand off the fixes for keyv" and open the Decisions tab to see the queue.
 
 ## Check your own lockfile
 

@@ -22,6 +22,7 @@ from plumbline.agent.runner import ask
 from plumbline.api.sessions import COOKIE, Approvals, Refused, clean_name
 from plumbline.graph.client import connect
 from plumbline.graphdata import artifact_graph
+from plumbline.memory import tasks
 from plumbline.memory.decisions import propose
 from plumbline.memory.replay import seek
 from plumbline.snapshot import build_meta, snapshot
@@ -192,6 +193,14 @@ def create_app() -> FastAPI:
             snap = snapshot(connect(), at_ms, approvals.history(sid))
             _remember((at_ms, approvals.digest(sid)), snap)
             return {"decision": proposal.decision_id, "snapshot": snap}
+
+    @app.get("/api/tasks")
+    def get_tasks(status: str = "") -> dict:
+        """The shared work queue the agents pass fixes through (read-only here)."""
+        try:
+            return {"tasks": tasks.list_tasks(connect(), status)}
+        except tasks.WorkError as exc:
+            raise HTTPException(422, str(exc)) from exc
 
     @app.post("/api/check")
     def post_check(body: CheckBody, request: Request) -> dict:

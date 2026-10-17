@@ -11,7 +11,7 @@ from mcp.client import Client
 from plumbline import config
 from plumbline.agent.mcp_server import build_server
 from plumbline.agent.runner import ask
-from plumbline.agent.tools import TOOLS
+from plumbline.agent.tools import READ_TOOLS, TOOLS, WORK_TOOLS
 from plumbline.graph.client import connect
 from plumbline.memory.replay import reset, seek
 from plumbline.timeutil import to_ms
@@ -37,15 +37,17 @@ def run(coro):
     return asyncio.run(coro)
 
 
-def test_server_exposes_exactly_the_read_only_tools():
+def test_server_exposes_the_read_tools_and_a_work_queue_and_nothing_else():
     async def go():
         async with Client(build_server()) as c:
             tools = (await c.list_tools()).tools
             return {t.name: t.annotations for t in tools}
 
     exposed = run(go())
-    assert set(exposed) == set(TOOLS)
-    assert all(a is not None and a.read_only_hint for a in exposed.values())
+    assert set(exposed) == set(TOOLS) == set(READ_TOOLS) | set(WORK_TOOLS)
+    assert all(exposed[n].read_only_hint for n in READ_TOOLS)
+    assert exposed["list_tasks"].read_only_hint
+    assert not exposed["claim_task"].read_only_hint and not any(a.destructive_hint for a in exposed.values())
     assert "commit_decision" not in exposed  # approval is a human action, never a tool
 
 
@@ -179,3 +181,60 @@ def test_the_model_timeout_comes_from_settings(monkeypatch):
     assert config.load_settings().llm_timeout == 450.0
     monkeypatch.delenv("LLM_TIMEOUT")
     assert config.load_settings().llm_timeout == 120.0
+
+
+def _data(result):
+    """A tool result as the runner reads it: structured content when present, otherwise the JSON text."""
+    return result.structured_content or json.loads("".join(c.text for c in result.content))
+
+
+def test_the_planner_hands_every_exposed_artifact_to_the_queue_and_lists_it():
+    from plumbline.graph.client import connect
+
+    g = connect()
+    g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+    try:
+        r = run(ask("Hand off the fixes for keyv", AFTER))
+        assert "hand_off_fix" in [c.name for c in r.calls]
+        assert "planted/gateway: fix queued, bump @acme/http-client@1.4.0" in r.answer
+        again = run(ask("Hand off the fixes for keyv", AFTER))
+        assert "already in the queue (open)" in again.answer
+        q = run(ask("What is in the work queue?", AFTER))
+        assert [c.name for c in q.calls][-1] == "list_tasks" and "planted/gateway open" in q.answer
+    finally:
+        g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+
+
+def test_two_agents_over_mcp_pass_a_fix_without_sharing_anything_but_the_graph():
+    from plumbline.graph.client import connect
+
+    g = connect()
+    g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+
+    async def triage_then_remediate():
+        async with Client(build_server()) as triage, Client(build_server()) as remediation:
+            handed = _data(await triage.call_tool("hand_off_fix", {
+                "advisory": "MAL-2026-11524", "artifact": "planted/gateway", "at": AFTER, "agent": "triage"}))
+            got = _data(await remediation.call_tool("claim_task", {"agent": "remediation"}))
+            nothing_left = _data(await triage.call_tool("claim_task", {"agent": "triage"}))
+            done = _data(await remediation.call_tool("complete_task", {
+                "task_id": got["task"]["id"], "agent": "remediation", "resolution": "bumped @acme/http-client"}))
+            refused = _data(await triage.call_tool("complete_task", {
+                "task_id": got["task"]["id"], "agent": "triage", "resolution": "not mine"}))
+            return handed, got, nothing_left, done, refused
+
+    try:
+        handed, got, nothing_left, done, refused = run(triage_then_remediate())
+        assert handed["created"] and got["task"]["id"] == handed["task"] and got["task"]["fix"] == "@acme/http-client@1.4.0"
+        assert nothing_left["task"] is None and done["status"] == "done" and "error" in refused
+    finally:
+        g.query("MATCH (n) WHERE n:Task OR n:Playbook DETACH DELETE n")
+
+
+def test_a_work_tool_refuses_an_artifact_that_is_not_exposed_as_data_not_a_crash():
+    async def go():
+        async with Client(build_server()) as c:
+            return _data(await c.call_tool("hand_off_fix", {
+                "advisory": "MAL-2026-11524", "artifact": "planted/orders-api", "at": AFTER}))
+
+    assert "only an EXPOSED artifact" in run(go())["error"]

@@ -72,6 +72,23 @@ def _cmd_replay(args: argparse.Namespace) -> None:
         print(f"REOPENED {r.artifact}: was {r.before}, now {r.now.result.verdict}; broken: {', '.join(r.broken)}")
 
 
+def _cmd_handoff_demo(args: argparse.Namespace) -> None:
+    from plumbline.memory.handoff_demo import run_demo
+
+    graph = connect()
+    at_ms = to_ms(args.at)
+    seek(graph, at_ms)
+    out = run_demo(graph, at_ms, args.workers)
+    print(f"triage agent handed off {out['handed_off']} exposures ({out['newly_queued']} new)")
+    for name, n in out["per_worker"].items():
+        print(f"  {name}: completed {n}")
+    print(f"claimed {out['claimed']}, twice: {out['claimed_twice']}  ->  "
+          + ("every task worked exactly once" if out["exactly_once"] else "DUPLICATE OR MISSED WORK"))
+    for r in out["recalled_playbooks"]:
+        print(f"  recalled from an earlier fix: {r}")
+    raise SystemExit(0 if out["exactly_once"] else 1)
+
+
 def _cmd_export_static(_: argparse.Namespace) -> None:
     from plumbline.export_static import DEFAULT_OUT, export
 
@@ -120,6 +137,10 @@ def main() -> None:
     r = sub.add_parser("replay", help="replay recorded approvals and scripted events up to a time")
     r.add_argument("--to", required=True, help="ISO time to replay to")
 
+    h = sub.add_parser("handoff-demo", help="one triage agent hands fixes to several remediation agents through the graph")
+    h.add_argument("--at", default="2026-08-04T13:00:00Z", help="ISO time to triage at")
+    h.add_argument("--workers", type=int, default=4)
+
     sub.add_parser("export-static", help="write the incident as static JSON for the serverless site")
 
     sub.add_parser("benchmark", help="grade the graph, SQL and naive retrieval against npm's own resolver")
@@ -134,7 +155,7 @@ def main() -> None:
     args = parser.parse_args()
     {"pin-fleet": _cmd_pin_fleet, "build-data": _cmd_build_data, "load": _cmd_load, "query": _cmd_query,
      "triage": _cmd_triage, "replay": _cmd_replay, "verify": _cmd_verify,
-     "serve": _cmd_serve, "export-static": _cmd_export_static,
+     "serve": _cmd_serve, "export-static": _cmd_export_static, "handoff-demo": _cmd_handoff_demo,
      "benchmark": _cmd_benchmark}[args.command](args)
 
 

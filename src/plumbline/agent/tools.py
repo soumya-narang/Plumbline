@@ -1,7 +1,8 @@
-"""The agent's tools: plain, typed, read-only functions over the graph.
+"""The agent's tools: plain, typed functions over the graph.
 
-Every function returns JSON-ready data. None of them writes to the graph: proposing a decision describes it,
-and committing one is a separate, human-approved path (``plumbline.memory.decisions.commit``) that is not a tool.
+The read tools never write: proposing a decision describes it, and committing one is a separate, human-approved path
+(``plumbline.memory.decisions.commit``) that is not a tool. The work tools write only to the shared work queue
+(hand-offs between agents); they cannot touch verdicts, decisions or facts.
 Verdicts in these results come from the deterministic policy; the model can quote them but never alter them.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 from falkordb import Graph
 
 from plumbline.graph.client import connect, run_named
+from plumbline.memory import tasks
 from plumbline.memory.decisions import ACTIONS, propose
 from plumbline.snapshot import advisories_at
 from plumbline.timeutil import to_iso, to_ms
@@ -112,8 +114,42 @@ def list_decisions() -> dict:
     return {"decisions": [{**d, "created": to_iso(d["created_ms"])} for d in _list(graph())]}
 
 
+def _work(call):
+    """Run a work-queue call, reporting a refusal as data the agent can read instead of an exception."""
+    try:
+        return call()
+    except tasks.WorkError as exc:
+        return {"error": str(exc)}
+
+
+def hand_off_fix(advisory: str, artifact: str, at: str, agent: str = "triage-agent", note: str = "") -> dict:
+    """Hand the fix for one EXPOSED artifact to the remediation agents by adding it to the shared work queue.
+
+    The fix (which direct dependency to bump) is taken from the graph, not from the arguments, and an artifact that is
+    not EXPOSED is refused. Asking twice for the same artifact and advisory returns the same task. If this package was
+    fixed before, `recalled` carries how.
+    """
+    return _work(lambda: tasks.hand_off(graph(), advisory, artifact, to_ms(at), agent, note))
+
+
+def claim_task(agent: str) -> dict:
+    """Take the oldest open task from the shared work queue. Two agents can never receive the same task."""
+    return _work(lambda: tasks.claim(graph(), agent))
+
+
+def complete_task(task_id: str, agent: str, resolution: str) -> dict:
+    """Mark a task you claimed as done, saying how it was resolved. The resolution is remembered as a playbook for
+    that package and offered the next time the package needs a fix."""
+    return _work(lambda: tasks.complete(graph(), task_id, agent, resolution))
+
+
+def list_tasks(status: str = "") -> dict:
+    """List the shared work queue, oldest first. status is open, claimed, done, or empty for all."""
+    return _work(lambda: {"tasks": tasks.list_tasks(graph(), status)})
+
+
 # name -> function. The MCP server registers exactly these, under these names.
-TOOLS = {
+READ_TOOLS = {
     "list_advisories": list_advisories,
     "triage_advisory": triage_advisory_tool,
     "explain_path": explain_path,
@@ -123,3 +159,13 @@ TOOLS = {
     "critical_dependencies": critical_dependencies,
     "list_decisions": list_decisions,
 }
+
+# These write, but only to the work queue.
+WORK_TOOLS = {
+    "hand_off_fix": hand_off_fix,
+    "claim_task": claim_task,
+    "complete_task": complete_task,
+    "list_tasks": list_tasks,
+}
+
+TOOLS = {**READ_TOOLS, **WORK_TOOLS}

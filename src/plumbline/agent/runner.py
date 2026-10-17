@@ -73,6 +73,8 @@ _DECISIONS = re.compile(r"\bdecision|decided|approved|accepted risk", re.IGNOREC
 _PROPOSE = re.compile(r"propose|should we approve|approve|sign off|what would you decide", re.IGNORECASE)
 _EXPLAIN = re.compile(r"why|path|how|explain|chain|evidence|prove", re.IGNORECASE)
 _FIX = re.compile(r"upgrade|bump|fix first|fix-first|patch first|remediat|update first|what should we (fix|do)", re.IGNORECASE)
+_HANDOFF = re.compile(r"hand ?off|hand over|assign|open (a )?(task|ticket)|create (a )?(task|ticket)|remediation task", re.IGNORECASE)
+_QUEUE = re.compile(r"\bqueue\b|open tasks|work list|\btasks\b|who is working|being worked", re.IGNORECASE)
 _CRITICAL = re.compile(r"critical|central|lean on|depends? on most|most important|pagerank|hub|concentrat|riskiest", re.IGNORECASE)
 
 
@@ -130,6 +132,30 @@ async def run_planner(client: Client, run: AgentRun) -> None:
                          f"It is now {ex.get('verdict', '?')}"
                          + (f" via {_fmt_path(ex.get('path'))}." if ex.get("path")
                             else f" ({ex.get('evidence') and ', '.join(e['purl'] for e in ex['evidence'])})."))
+    elif _HANDOFF.search(q):
+        advisory = _pick_advisory(q, advisories)
+        if advisory is None:
+            run.answer = f"No advisory has been published as of {run.at}, so there is nothing to hand off yet."
+            return
+        tri = await call_tool(client, run, "triage_advisory", {"advisory": advisory, "at": run.at})
+        exposed = [r["artifact"] for r in tri.get("rows", []) if r["verdict"] == "EXPOSED"]
+        if not exposed:
+            lines.append(f"No artifact is exposed to {advisory} as of {run.at}, so there is nothing to hand off.")
+        for artifact in exposed:
+            res = await call_tool(client, run, "hand_off_fix", {"advisory": advisory, "artifact": artifact, "at": run.at})
+            if "error" in res:
+                lines.append(f"{artifact}: {res['error']}.")
+                continue
+            state = "queued" if res["created"] else f"already in the queue ({res['status']})"
+            recalled = (f" Last time this package was fixed: {res['recalled']['resolution']}." if res.get("recalled") else "")
+            lines.append(f"{artifact}: fix {state}, bump {res['fix']}.{recalled}")
+    elif _QUEUE.search(q):
+        res = await call_tool(client, run, "list_tasks", {})
+        queue = res.get("tasks", [])
+        lines.append(
+            f"{_plural(len(queue), 'task')} in the work queue: " + "; ".join(
+                f"{t['artifact']} {t['status']}" + (f" by {t['claimed_by']}" if t["claimed_by"] else "") for t in queue) + "."
+            if queue else "The work queue is empty.")
     elif _FIX.search(q):
         advisory = _pick_advisory(q, advisories)
         if advisory is None:

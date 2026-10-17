@@ -124,7 +124,7 @@
                 </div>
                 <p class="map-caption" id="map-caption" aria-live="polite"></p>
               </div>
-              <div id="panel-decisions" role="tabpanel" aria-labelledby="tab-decisions" class="panel" hidden><div id="decisions"></div></div>
+              <div id="panel-decisions" role="tabpanel" aria-labelledby="tab-decisions" class="panel" hidden><div id="decisions"></div><div id="work-queue"></div></div>
               <div id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" class="panel" hidden><div id="agent"></div></div>
             </div>
           </section>
@@ -198,7 +198,7 @@
           <dl class="jobs">
             <div><dt>Evidence</dt><dd>A shortest-path query over the resolved dependency edges returns the chain for every exposed service.</dd></div>
             <div><dt>Memory</dt><dd>Decisions point at the facts they assume. One traversal finds exactly which decisions a new event breaks.</dd></div>
-            <div><dt>Tools</dt><dd>An MCP server exposes read-only tools, including a fleet-wide fix-first query and PageRank over each dependency graph. The agent reaches the graph only through them.</dd></div>
+            <div><dt>Tools</dt><dd>An MCP server exposes read-only tools, plus a shared work queue for hand-offs between agents, including a fleet-wide fix-first query and PageRank over each dependency graph. The agent reaches the graph only through them.</dd></div>
           </dl>
           <p class="facts" id="facts"></p>
         </div>

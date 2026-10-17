@@ -30,7 +30,7 @@ function resultHtml(run) {
 
 export function createAgent({ suggestions, live, getStop, ask }) {
   const root = document.getElementById("agent");
-  root.innerHTML = `<p class="muted" style="margin-bottom:14px;max-width:62ch">The agent reaches the graph only through read-only tools served over MCP, and every call is shown below.${live ? "" : " This static site replays recorded answers; free text runs in the live deployment."}</p>
+  root.innerHTML = `<p class="muted" style="margin-bottom:14px;max-width:62ch">The agent reaches the graph only through tools served over MCP (it can read the graph and use a shared work queue, never change a verdict), and every call is shown below.${live ? "" : " This static site replays recorded answers; free text runs in the live deployment."}</p>
     <ul class="suggest">${suggestions.map((q, i) => `<li><button type="button" data-q="${i}">${esc(q)}</button></li>`).join("")}</ul>
     <form class="ask" id="ask-form">
       <input id="ask-input" maxlength="300" aria-label="Question for the agent" autocomplete="off"
@@ -45,6 +45,7 @@ export function createAgent({ suggestions, live, getStop, ask }) {
     out.innerHTML = '<p class="thinking">Choosing tools over MCP…</p>';
     try {
       out.innerHTML = resultHtml(await ask(question, getStop()));
+      dispatchEvent(new Event("agent-answered")); // the answer may have added to the work queue
     } catch (err) {
       out.innerHTML = `<p class="thinking">${esc(err.message)}</p>`;
     }
