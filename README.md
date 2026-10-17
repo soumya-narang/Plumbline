@@ -96,6 +96,23 @@ python -m plumbline handoff-demo --workers 5     # 8 exposures, 5 concurrent age
 
 In the app, ask the agent to "hand off the fixes for keyv" and open the Decisions tab to see the queue.
 
+## Tracks
+
+**Track 01, Agents That Act on Connected Data** is the core: an agent triages a supply-chain incident by following dependency
+paths (a shortest-path query), ranks what to fix first (a fleet query) and finds the packages a project leans on most
+(PageRank), all through MCP tools, with every verdict explained by the path and a receipt that can be re-derived.
+
+**Track 02, Agent Memory and Coordination** is covered by working parts, each with tests:
+
+| Track 02 focus | Where it is |
+|---|---|
+| Episodic memory | Decisions, with who approved and when (`memory/decisions.py`) |
+| Semantic memory | Facts a decision assumed, and the reopen query that finds the decisions a changed fact breaks |
+| Procedural memory | Playbooks: how a package was fixed last time, offered on the next hand-off (`memory/tasks.py`) |
+| Shared state and hand-offs | A work queue in the graph that a triage agent fills and remediation agents drain (`handoff-demo`) |
+| Concurrent reads and writes | 20 agents racing for 40 tasks claim each exactly once (`tests/test_tasks.py`); concurrent uploads stay separate |
+| Separate memory per user or tenant | One graph per uploaded project, created with `GRAPH.COPY`; approvals and what-ifs are kept per visitor |
+
 ## Check your own lockfile
 
 With the server running, open `/check.html` and paste a `package-lock.json` (npm lockfile v2 or v3). Each upload gets
