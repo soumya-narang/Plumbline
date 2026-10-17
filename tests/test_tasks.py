@@ -36,7 +36,7 @@ def seed(g, n):
     """Many distinct open tasks, written the same way a hand-off writes them."""
     for i in range(n):
         run_named(g, "work/create_task", {"id": f"task:load:{i:03d}", "advisory": ADVISORY, "artifact": EXPOSED_ARTIFACT,
-                                          "fix": "bump x", "note": "", "by": "seed", "now_ms": 1_000 + i}, read_only=False)
+                                          "fix": "bump x", "note": "", "by": "seed", "now_ms": 1_000 + i, "hypothetical": False}, read_only=False)
 
 
 def test_an_empty_queue_is_safe_to_read_claim_and_complete(graph):
@@ -177,3 +177,14 @@ def test_a_claim_is_fast_even_with_a_full_queue(graph):
     started = time.time()
     tasks.claim(graph, "w")
     assert time.time() - started < 1.0
+
+
+def test_an_exposure_that_rests_on_a_revision_is_marked_hypothetical(graph):
+    seek(graph, to_ms("2026-08-04T13:00:00Z"), [])  # the graph now carries the scripted 12:45 revision
+    # billing-worker locks keyv@6.0.1, which only that revision adds to the advisory
+    hypo = tasks.hand_off(graph, ADVISORY, "planted/billing-worker", to_ms("2026-08-04T13:00:00Z"), by="triage-agent")
+    # gateway locks keyv@6.0.0, named by the advisory as published
+    real = tasks.hand_off(graph, ADVISORY, EXPOSED_ARTIFACT, AT, by="triage-agent")
+    assert hypo["hypothetical"] is True and real["hypothetical"] is False
+    by_artifact = {t["artifact"]: t["hypothetical"] for t in tasks.list_tasks(graph)}
+    assert by_artifact == {"planted/billing-worker": True, EXPOSED_ARTIFACT: False}

@@ -586,3 +586,4 @@ html { overscroll-behavior-y: none; }
 .whatif input { width: 7.5em; font-family: var(--mono); }
 .wi-msg { min-height: 1.4em; margin-top: 8px; font-size: .9rem; color: var(--flag-ink); }
 #wi-clear { margin-top: 10px; }
+.wtag .hypo-tag { color: var(--hypo, var(--ink-3)); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 4px; }

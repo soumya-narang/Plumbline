@@ -148,7 +148,8 @@ async def run_planner(client: Client, run: AgentRun) -> None:
                 continue
             state = "queued" if res["created"] else f"already in the queue ({res['status']})"
             recalled = (f" Last time this package was fixed: {res['recalled']['resolution']}." if res.get("recalled") else "")
-            lines.append(f"{artifact}: fix {state}, bump {res['fix']}.{recalled}")
+            hypo = " This exposure depends on a hypothetical advisory revision, so the task is marked hypothetical." if res.get("hypothetical") else ""
+            lines.append(f"{artifact}: fix {state}, bump {res['fix']}.{recalled}{hypo}")
     elif _QUEUE.search(q):
         res = await call_tool(client, run, "list_tasks", {})
         queue = res.get("tasks", [])

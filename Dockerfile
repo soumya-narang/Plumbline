@@ -24,6 +24,8 @@ COPY deploy/entrypoint.sh /entrypoint.sh
 
 RUN useradd --create-home --uid 1000 app && chmod +x /entrypoint.sh
 USER app
-ENV FALKORDB_HOST=127.0.0.1 FALKORDB_PORT=6379 PORT=7860
+# The platform in front of this container (Hugging Face Spaces, for example) sets X-Forwarded-For; without trusting it,
+# every visitor would look like one client to the per-client limits.
+ENV FALKORDB_HOST=127.0.0.1 FALKORDB_PORT=6379 PORT=7860 PLUMBLINE_TRUST_PROXY=1
 EXPOSE 7860
 ENTRYPOINT ["/entrypoint.sh"]

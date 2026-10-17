@@ -86,16 +86,19 @@ def hand_off(graph: Graph, advisory: str, artifact: str, at_ms: int, by: str, no
     if run_named(graph, "work/count_open").result_set[0][0] >= MAX_OPEN:
         raise WorkError(f"the queue already holds {MAX_OPEN} unfinished tasks")
     fix = ", ".join(verdict.pulled_by) or "upgrade the affected package"
+    purls = [e.purl for e in verdict.result.evidence]
+    hypothetical = run_named(graph, "work/depends_on_revision", {"advisory": advisory, "purls": purls}).result_set[0][0] > 0
     rows = run_named(graph, "work/create_task", {
         "id": task_id(advisory, artifact), "advisory": advisory, "artifact": artifact, "fix": fix,
-        "note": " ".join(note.split())[:MAX_TEXT], "by": by, "now_ms": now_ms()}, read_only=False).result_set
+        "note": " ".join(note.split())[:MAX_TEXT], "by": by, "now_ms": now_ms(), "hypothetical": hypothetical},
+        read_only=False).result_set
     if not rows:
         raise WorkError(f"{advisory} or {artifact} is not in the graph")
     tid, status, claimed_by, created = rows[0]
     package = _package_of(graph, advisory)
     recalled = run_named(graph, "work/find_playbook", {"playbook": playbook_id(package)}).result_set
     return {"task": tid, "status": status, "claimed_by": claimed_by or None, "created": bool(created),
-            "fix": fix, "path": list(verdict.path or ()),
+            "fix": fix, "path": list(verdict.path or ()), "hypothetical": hypothetical,
             "recalled": {"resolution": recalled[0][0], "times_used": recalled[0][1]} if recalled else None}
 
 
@@ -135,10 +138,10 @@ def list_tasks(graph: Graph, status: str = "") -> list[dict]:
     if status not in ("", "open", "claimed", "done"):
         raise WorkError("status must be open, claimed, done, or empty for all")
     out = []
-    for (tid, st, advisory, artifact, fix, note, by, claimed_by, resolution, created, claimed, done) in \
+    for (tid, st, advisory, artifact, fix, note, by, claimed_by, resolution, created, claimed, done, hypo) in \
             run_named(graph, "work/list_tasks", {"status": status}).result_set:
         out.append({"id": tid, "status": st, "advisory": advisory, "artifact": artifact, "fix": fix, "note": note or None,
                     "created_by": by, "claimed_by": claimed_by or None, "resolution": resolution or None,
                     "created": to_iso(created), "claimed": to_iso(claimed) if claimed else None,
-                    "done": to_iso(done) if done else None})
+                    "done": to_iso(done) if done else None, "hypothetical": bool(hypo)})
     return out
