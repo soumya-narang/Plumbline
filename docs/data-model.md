@@ -58,7 +58,7 @@ a later revision is invisible before the edge's `since_ms`. That is what lets th
 
 ## Not yet modelled
 
-`Team` (code owners), tenants, `Task` handoff and `Playbook` (procedural memory).
+`Team` (code owners), `Task` handoff and `Playbook` (procedural memory). Upload tenants are separate graphs copied from a template, not nodes in this graph (`src/plumbline/tenants.py`).
 
 ## Honest limits
 

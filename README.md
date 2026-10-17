@@ -52,6 +52,29 @@ Step through the incident with the timeline (or press play). The page also runs 
 see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
 exposing eight read-only tools, including a fleet-wide fix-first query and PageRank. Approving a decision is a human action and is deliberately not a tool.
 
+## Graph data model
+
+```
+(Service)-[:RUNS]->(Artifact)-[:LOCKS]->(LockedDep)-[:REQUIRES]->(LockedDep)
+(Service)-[:EXPOSED_VIA]->(Exposure)            (LockedDep)-[:IS]->(PackageVersion)<-[:AFFECTS]-(Advisory)
+(Decision)-[:ABOUT]->(Advisory)   (Decision)-[:FOR]->(Artifact)   (Decision)-[:ASSUMES]->(Fact)   (Receipt)-[:PROVES]->(Decision)
+```
+
+Dependencies are modelled per artifact (`LockedDep`), so "which service reaches the poisoned version, and through what"
+is one variable-length path query, not a join per hop. Decisions point at the facts they assumed, so a changed fact finds
+every decision that rested on it. The full property lists, indexes and limits are in [docs/data-model.md](docs/data-model.md).
+
+The queries the product depends on, all in `queries/`:
+
+| Query | What it answers |
+|---|---|
+| `q1_exposure_base` | Which services lock a version an advisory names |
+| `q2_explain_path` | The shortest dependency path from a service to the poisoned version |
+| `q5_reopen_check` | Which accepted decisions assumed a fact that is no longer true |
+| `q6_fix_first` | Which direct dependency to bump to clear the most exposure |
+| `q7_critical_dependencies` | PageRank over the dependency graph: which packages the fleet leans on most |
+| `tenant/*` | Per-upload graphs created with `GRAPH.COPY` from a template graph |
+
 ## Check your own lockfile
 
 With the server running, open `/check.html` and paste a `package-lock.json` (npm lockfile v2 or v3). Each upload gets
