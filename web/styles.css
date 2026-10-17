@@ -560,3 +560,10 @@ details.proof h5 { margin: 22px 0 10px; font-size: .85rem; font-weight: 600; col
 .tryit [hidden] { display: none; }
 .tryit .btn-hero { background: var(--ink); color: var(--page); }
 .tryit .btn-hero:hover { background: var(--ink); opacity: .86; }
+
+/* Edges of the page: no rubber-banding into a mismatched background, a tighter footer, and the depth ruler steps aside at the end */
+html { overscroll-behavior-y: none; }
+.site-foot { padding: 28px 0 32px; }
+.depth { transition: opacity .35s; }
+.depth.off { opacity: 0; }
+.band-lede + .story { margin-top: 20px; }

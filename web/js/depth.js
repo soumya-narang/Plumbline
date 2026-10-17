@@ -4,6 +4,7 @@ import { createSpring } from "./spring.js";
 
 const rail = document.getElementById("depth");
 const bob = document.getElementById("depth-bob");
+const foot = document.querySelector(".site-foot");
 const sections = [".hero", "#replay", "#how", "#hood"].map((q) => document.querySelector(q));
 if (rail && bob && sections.every(Boolean)) {
   const ticks = [...rail.querySelectorAll(".depth-tick")];
@@ -16,6 +17,7 @@ if (rail && bob && sections.every(Boolean)) {
     const line = innerHeight * 0.4;
     let hop = 0;
     sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= line) hop = i; });
+    rail.classList.toggle("off", foot ? foot.getBoundingClientRect().top < rail.getBoundingClientRect().bottom + 16 : false);
     if (hop === current) return;
     current = hop;
     ticks.forEach((t, i) => t.classList.toggle("on", i <= hop));
