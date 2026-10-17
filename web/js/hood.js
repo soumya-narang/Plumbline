@@ -26,10 +26,7 @@ export function initHood(meta) {
 
   const s = meta.stats;
   if (s) {
-    facts.innerHTML = [
-      [s.dependencies, "dependencies in the graph"],
-      [s.edges, "resolved dependency edges"],
-      [s.artifacts, "artifacts, 4 of them planted"],
-    ].map(([n, label]) => `<div><dt>${Number(n).toLocaleString()}</dt><dd>${esc(label)}</dd></div>`).join("");
+    const n = (v) => `<b>${Number(v).toLocaleString()}</b>`;
+    facts.innerHTML = `The demo graph holds ${n(s.dependencies)} packages and ${n(s.edges)} dependency edges across ${n(s.artifacts)} repositories. Four of them are planted and labelled as such.`;
   }
 }

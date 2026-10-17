@@ -1,9 +1,9 @@
 import {
-  VERDICT_WORD, approverLabel, attachClouds, clock, esc, factView, grouped, highlightCypher, mark, plural, reasonText,
+  VERDICT_WORD, approverLabel, clock, esc, factView, grouped, highlightCypher, mark, plural, reasonText,
 } from "./format.js";
 
 const X = 14; // x of the plumb line
-const GAP = 56; // vertical distance between joints
+const GAP = 44; // vertical distance between joints
 const TOP = 12;
 
 /** The evidence path as a plumb line: a line hung from the service, ending in a bob at the malicious version. */
@@ -23,15 +23,15 @@ function plumbSvg(row, published) {
     const d = `${((i + 1) / path.length) * 0.7}s`;
     const note = last
       ? `malicious version${published ? `, published ${clock(published)} UTC` : ""}`
-      : i === 0 ? "direct dependency" : "transitive dependency";
+      : i === 0 ? "direct dependency" : "";
     parts.push(last
-      ? `<g class="bobg" style="--d:${d}"><circle class="halo" cx="${X}" cy="${y}" r="9"/><circle class="bob" cx="${X}" cy="${y}" r="9"/></g>`
+      ? `<g class="bobg" style="--d:${d}"><rect class="halo" x="${X - 9}" y="${y - 9}" width="18" height="18" rx="4"/><rect class="poison" x="${X - 9}" y="${y - 9}" width="18" height="18" rx="4"/></g>`
       : `<circle class="joint" style="--d:${d}" cx="${X}" cy="${y}" r="5"/>`);
     parts.push(`<g class="row ${last ? "bad" : ""}" style="--d:${d}"><text class="nm" x="${X + 26}" y="${y + 4}">${esc(name)}</text>
-      <text class="sub" x="${X + 26}" y="${y + 21}">${esc(note)}</text></g>`);
+      ${note ? `<text class="sub" x="${X + 26}" y="${y + 21}">${esc(note)}</text>` : ""}</g>`);
   });
 
-  const H = bottom + 34;
+  const H = bottom + 26;
   return `<svg class="plumb-svg" viewBox="0 0 520 ${H}" role="img" aria-label="Dependency path from ${esc(row.service ?? "the service")}: ${esc(path.join(", then "))}">${parts.join("")}</svg>`;
 }
 
@@ -40,7 +40,7 @@ function assumptions(items, brokenIds, brokenAt) {
   return `<ol class="assumptions">${items.map((a) => {
     const f = factView(a.id);
     const broken = brokenIds.has(a.id);
-    return `<li class="${broken ? "broken" : ""}" ${broken ? "data-cloud" : ""}><span><span class="txt">${esc(f.label)}</span>
+    return `<li class="${broken ? "broken" : ""}"><span><span class="txt">${esc(f.label)}</span>
       <span class="why">${broken ? `No longer true since ${esc(clock(brokenAt))} UTC` : esc(f.why)}</span></span></li>`;
   }).join("")}</ol>`;
 }
@@ -73,9 +73,12 @@ export function renderEvidence(snap, sel, ctx, handlers) {
   let statement;
   let main = "";
   if (row.verdict === "EXPOSED") {
-    statement = `Its lockfile pins ${row.evidence.map((e) => `${e.name}@${e.version}`).join(", ")}, which ${adv.id} names as malicious${row.evidence.some((e) => e.dev) ? " (a development dependency)" : ""}.`;
-    main = `<div class="section"><h4>Path · ${row.hops === 0 ? "direct dependency" : plural(row.hops, "hop")}</h4>${plumbSvg(row, adv.published)}</div>
-      ${row.pulled_by?.length ? `<p class="fix"><b>What to bump:</b> ${row.pulled_by.map((p) => `<code>${esc(p)}</code>`).join(", ")}. ${row.pulled_by.length === 1 ? "It is" : "They are"} the direct ${row.pulled_by.length === 1 ? "dependency" : "dependencies"} that pull the poisoned version in.</p>` : ""}`;
+    const bad = row.evidence.map((e) => `${e.name}@${e.version}`).join(", ");
+    statement = row.hops === 0
+      ? `It depends directly on ${bad}, a malicious release${row.evidence.some((e) => e.dev) ? " (development only)" : ""}.`
+      : `It reaches ${bad}, a malicious release, through ${plural(row.hops, "package")}${row.evidence.some((e) => e.dev) ? " (development only)" : ""}.`;
+    main = `<div class="section">${plumbSvg(row, adv.published)}</div>
+      ${row.pulled_by?.length ? `<div class="fix"><span class="fix-k">Fix</span><p>Bump ${row.pulled_by.map((p) => `<code>${esc(p)}</code>`).join(", ")}. ${row.pulled_by.length === 1 ? "It is" : "They are"} the only ${row.pulled_by.length === 1 ? "way" : "ways"} in.</p></div>` : ""}`;
   } else if (row.verdict === "CLEARED") {
     statement = row.evidence.length
       ? `It locks ${row.evidence.length === 1 ? "this version" : "these versions"} of ${adv.package}, none of which ${adv.id} names.`
@@ -88,28 +91,31 @@ export function renderEvidence(snap, sel, ctx, handlers) {
   }
 
   const why = reopened
-    ? `<div class="section"><h4>Why this decision was reopened</h4>
+    ? `<div class="section reopened"><h4>Why this decision was reopened</h4>
         <p style="margin-bottom:8px">It was approved as <b>${esc(VERDICT_WORD[reopened.before])}</b> on the assumptions below. One stopped being true, so it is now <b>${esc(VERDICT_WORD[reopened.now])}</b>.</p>
         ${assumptions((snap.decisions.find((d) => d.decision === reopened.decision)?.assumption_ids ?? []).map((id) => ({ id })), brokenIds, reopened.broken_at)}</div>`
-    : row.assumptions.length
-      ? `<div class="section"><h4>What this verdict assumes</h4>${assumptions(row.assumptions, brokenIds, "")}</div>`
-      : "";
-
-  const proof = row.receipt || (row.verdict === "EXPOSED" && ctx.queries?.q2)
-    ? `<details class="proof"><summary>Proof: receipt and query</summary>
-        ${row.receipt ? `<dl class="stamp"><dt>Receipt</dt><dd>${esc(grouped(row.receipt))}</dd><dt>Check</dt>
-          <dd style="font-family:var(--text)"><button type="button" class="link" id="verify" ${ctx.live ? "" : 'disabled title="Verification re-derives the verdict from the live graph"'}>Re-derive from the graph</button><span id="verify-result" class="result" aria-live="polite"></span></dd></dl>` : ""}
-        ${row.verdict === "EXPOSED" && ctx.queries?.q2 ? `<pre class="cypher">${highlightCypher(ctx.queries.q2)}</pre>` : ""}</details>`
+    : "";
+  const assumed = !reopened && row.assumptions.length
+    ? `<h5>What this verdict assumes</h5>${assumptions(row.assumptions, brokenIds, "")}`
     : "";
 
-  body.innerHTML = `<div class="ev-head"><h3>${esc(row.artifact)}</h3>${row.synthetic ? '<span class="tag">planted fixture</span>' : ""}</div>
-    <p class="ev-meta">${esc(row.service ?? "")} · ${row.exposure === "internet" ? "internet-facing" : "internal"} · declared, not discovered</p>
-    <div class="verdict ${row.verdict}">${mark(row.verdict)} ${esc(VERDICT_WORD[row.verdict])}</div>
+  const proof = row.receipt || (row.verdict === "EXPOSED" && ctx.queries?.q2)
+    ? `<h5>Proof</h5>
+        ${row.receipt ? `<dl class="stamp"><dt>Receipt</dt><dd>${esc(grouped(row.receipt))}</dd><dt>Check</dt>
+          <dd style="font-family:var(--text)"><button type="button" class="link" id="verify" ${ctx.live ? "" : 'disabled title="Verification re-derives the verdict from the live graph"'}>Re-derive from the graph</button><span id="verify-result" class="result" aria-live="polite"></span></dd></dl>` : ""}
+        ${row.verdict === "EXPOSED" && ctx.queries?.q2 ? `<pre class="cypher">${highlightCypher(ctx.queries.q2)}</pre>` : ""}`
+    : "";
+  const how = assumed || proof
+    ? `<details class="proof"${reopened ? " open" : ""}><summary>How this was decided</summary>${assumed}${proof}</details>`
+    : "";
+
+  body.innerHTML = `<div class="verdict ${row.verdict}">${mark(row.verdict)} ${esc(VERDICT_WORD[row.verdict])}</div>
+    <div class="ev-head"><h3>${esc(row.artifact)}</h3>${row.synthetic ? '<span class="tag">planted fixture</span>' : ""}</div>
+    <p class="ev-meta">${esc(row.service ?? "")} · ${row.exposure === "internet" ? "faces the internet" : "internal"}</p>
     <p class="statement">${esc(statement)}</p>
     ${main}${why}
-    <div class="section"><h4>Decision</h4>${decisionBlock(row, snap, ctx)}</div>${proof}`;
+    <div class="section"><h4>Decision</h4>${decisionBlock(row, snap, ctx)}</div>${how}`;
 
-  attachClouds(body);
 
   body.querySelector("#approve")?.addEventListener("click", () => {
     const input = body.querySelector("#approver");

@@ -19,9 +19,6 @@ export const mark = (verdict) => `<i class="mark ${verdict}" aria-hidden="true">
 
 export const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** Drawings number their revisions with letters; the incident's stops are the revisions. */
-export const revLetter = (i) => String.fromCharCode(65 + i);
-
 const REASONS = {
   no_lockfile: {
     title: "No lockfile at the pinned commit",
@@ -70,41 +67,3 @@ export const approverLabel = (a) => (a === "replay" ? "the recorded replay" : a)
 
 /** A hash in groups of eight, the way a drawing number is easier to compare by eye. */
 export const grouped = (hash, n = 32) => hash.slice(0, n).match(/.{1,8}/g).join(" ");
-
-/**
- * A revision cloud: the scalloped outline a drafter draws around anything that changed on a new revision.
- * Arcs bulge outward around the rectangle; `pathLength="1"` lets one CSS rule animate it being drawn.
- */
-export function cloudSvg(w, h, scallop = 13) {
-  const pad = 9;
-  const W = w + pad * 2;
-  const H = h + pad * 2;
-  const r = scallop * 0.62;
-  const edge = (len) => Math.max(2, Math.round(len / scallop));
-  const pts = [];
-  const along = (x0, y0, x1, y1, n) => {
-    for (let i = 0; i < n; i++) pts.push([x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]);
-  };
-  along(0, 0, W, 0, edge(W));
-  along(W, 0, W, H, edge(H));
-  along(W, H, 0, H, edge(W));
-  along(0, H, 0, 0, edge(H));
-  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-  for (let i = 0; i < pts.length; i++) {
-    const [x, y] = pts[(i + 1) % pts.length];
-    d += ` A${r.toFixed(1)} ${r.toFixed(1)} 0 0 0 ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }
-  return `<svg class="cloud" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" pathLength="1"/></svg>`;
-}
-
-/** Draw a revision cloud around every element marked data-cloud, sized to its box after layout. */
-export function attachClouds(root) {
-  requestAnimationFrame(() => {
-    root.querySelectorAll("[data-cloud]").forEach((el) => {
-      el.querySelector(":scope > .cloud")?.remove();
-      const { width, height } = el.getBoundingClientRect();
-      if (width < 4) return;
-      el.insertAdjacentHTML("beforeend", cloudSvg(width, height));
-    });
-  });
-}

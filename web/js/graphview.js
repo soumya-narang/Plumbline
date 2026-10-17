@@ -57,7 +57,8 @@ export function findNode(data, name, version) {
   return data.nodes.findIndex((n) => n[1] === name && n[2] === version);
 }
 
-export function createGraphView(canvas, { interactive = false, labels = true, loop = false, inset = () => 0, anchor = () => 0.5, padTop = PAD_TOP } = {}) {
+export function createGraphView(canvas, { interactive = false, labels = true, loop = false, inset = () => 0, anchor = () => 0.5, padTop: padTopOpt = PAD_TOP } = {}) {
+  const padTopNow = () => (typeof padTopOpt === "function" ? padTopOpt() : padTopOpt);
   const ctx = canvas.getContext("2d");
   const host = canvas.parentElement;
   let data = null;
@@ -69,6 +70,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
   let related = null;
   let progress = 1; // 0..1 along the path; the bob rides it
   let raf = 0;
+  let glow = 0; // the path glows on dark; on light it would only smudge
   let timer = 0;
   let W = 0;
   let H = 0;
@@ -99,6 +101,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
       if (d < 1) return;
       const at = l.findIndex((idx) => onPath.has(idx));
       if (at >= 0) { const [p] = l.splice(at, 1); l.splice(Math.floor(l.length / 2), 0, p); }
+      const padTop = padTopNow();
       const y = padTop + ((d - 1) / span) * (H - padTop - PAD_BOTTOM);
       const kp = l.findIndex((idx) => onPath.has(idx));
       l.forEach((idx, k) => {
@@ -131,7 +134,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
   function along(p) {
     const pts = pathPoints();
     if (!pts.length) return null;
-    const full = [[pts[0][0], padTop - 30], ...pts];
+    const full = [[pts[0][0], padTopNow() - 30], ...pts];
     const lens = full.slice(1).map((q, i) => Math.hypot(q[0] - full[i][0], q[1] - full[i][1]));
     const total = lens.reduce((a, b) => a + b, 0) || 1;
     let want = p * total;
@@ -154,6 +157,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
     const cPath = css("--g-path", "#ff6b3d");
     const cLabel = css("--g-label", "#e8f3f4");
     const dim = related != null;
+    glow = Number(css("--g-glow", "0")) ? 1 : 0;
 
     ctx.lineWidth = 0.7;
     for (const [s, t] of data.edges) {
@@ -193,14 +197,14 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
 
   function drawPath(cPath, cLabel) {
     const pts = pathPoints();
-    const full = [[pts[0][0], padTop - 30], ...pts];
+    const full = [[pts[0][0], padTopNow() - 30], ...pts];
     const head = along(progress);
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = cPath;
     ctx.shadowColor = cPath;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 14 * glow;
     ctx.lineWidth = 2.6;
     ctx.beginPath();
     ctx.moveTo(full[0][0], full[0][1]);
@@ -230,7 +234,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
     // the bob
     ctx.fillStyle = cPath;
     ctx.shadowColor = cPath;
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 18 * glow;
     ctx.beginPath();
     ctx.arc(head.x, head.y, progress >= 1 ? 8 : 6.5, 0, Math.PI * 2);
     ctx.fill();
@@ -244,7 +248,7 @@ export function createGraphView(canvas, { interactive = false, labels = true, lo
         const n = data.nodes[idx];
         const text = `${n[1]}@${n[2]}`;
         const x = xs[idx];
-        const right = x < W - 200;
+        const right = x + 16 + ctx.measureText(text).width <= W - 10; // label goes to whichever side has room
         ctx.textAlign = right ? "left" : "right";
         ctx.lineJoin = "round";
         ctx.lineWidth = 5;
