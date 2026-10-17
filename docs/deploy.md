@@ -65,6 +65,7 @@ needs to survive a restart. First start takes about a minute.
    | `PLUMBLINE_APPROVALS` | `on` | `off` makes the site read-only: nobody can record an approval |
    | `PLUMBLINE_TRUST_PROXY` | `1` in the image | count visitors by `X-Forwarded-For` (set by the Space's proxy) so per-client limits are per person |
    | `LLM_MAX_ASKS_PER_HOUR` | `60` | cap on model calls |
+   | `PLUMBLINE_STATE_DIR` | `data/state` | where approvals are kept so a restart does not lose them; `off` keeps them in memory only. On a Space, enable persistent storage and set this to `/data` |
 
    Limits built in: three open lockfile checks per client, 25 in total, each deleted after 30 minutes; ten approvals or
    what-ifs per hour per client; lockfiles up to 4 MB, 8,000 packages and 20,000 dependency links. The image starts

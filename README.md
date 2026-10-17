@@ -108,6 +108,11 @@ code in `src/plumbline/policy` then **decides**. A language model can choose too
 checks the hash first, then re-derives the verdict from the live graph, so both an edited receipt and a forged one with a recomputed hash are
 rejected. Tested.
 
+**What a receipt protects against, and what it does not.** A receipt shows that a verdict is *consistent*: the stated evidence hashes to the stated value, and the graph, asked again,
+reaches the same verdict. It catches tampering with a stored result and any drift between the result and the data. It is **not a digital signature**: it does not prove who produced
+it or who approved a decision, and it cannot show that a lockfile matches what is actually deployed. That last point is exactly why every CLEARED and EXPOSED verdict lists
+"the lockfile matches what is deployed" as an assumption.
+
 **As-of semantics.** Everything is evaluated as of a timestamp. An advisory is invisible before its publication time, and a version added by a
 later revision is invisible before that revision. This is what lets the replay move backwards as well as forwards.
 
@@ -253,6 +258,10 @@ touch the recorded incident. They can be removed with one click.
 **Per-visitor state.** The graph holds one set of decision memory, and every request first rewinds it to that visitor's own history (approvals and what-ifs, kept by a session cookie)
 before reading or writing. One visitor never sees another's approvals.
 
+**Durability.** Approvals are decisions, so they are appended to a file (`data/state/approvals.jsonl`, or `$PLUMBLINE_STATE_DIR`) and reloaded when the server starts: a restart does not
+lose them, and the visitor's cookie gets them back. A damaged file is read line by line, anything malformed is ignored, and the file is compacted on load. What-ifs are hypothetical and are
+deliberately kept in memory only. "Remove my what-ifs" removes only what-ifs, never approvals. On a host with an ephemeral disk, point `PLUMBLINE_STATE_DIR` at persistent storage.
+
 **The work queue.** A triage agent finds every EXPOSED repository and hands each fix to a queue stored in the graph (`Task` nodes). Remediation agents claim the oldest open task,
 work it, and complete it. Claiming is a single Cypher write, and FalkorDB runs write queries on one graph one at a time, so two agents cannot receive the same task. A test races
 20 threads for 40 tasks and checks each is claimed exactly once. Completing a task records a `Playbook` for that package, and the next hand-off returns it as a suggestion.
@@ -327,8 +336,13 @@ parser or graph (`python -m plumbline benchmark`, full output in [docs/benchmark
 | Which direct dependencies pull P@V in? (16, multi-hop) | 100% | 100% | 44% |
 | Which artifacts lock P@V? (7, fleet-wide) | 100% | 100% | 86% |
 
-**Stated plainly:** a tuned in-process SQL query gets the same answers and is faster on lookups at this size. Text retrieval fails the multi-hop question. The graph's case is not speed. It is
-evidence that carries its path, memory that knows what it assumed, algorithms such as PageRank, and one store that several agents and many isolated tenants can share.
+**Stated plainly:** a tuned in-process SQL query gets the same answers and is faster on lookups at this size. Text retrieval fails the multi-hop question. The graph's case is not speed.
+
+**What this table does and does not show.** It grades dependency *lookups* only. It does not claim the graph is better for the whole workflow, and SQL could implement each piece
+of that workflow on its own: a recursive query for paths, a join table for assumptions, a queue table for hand-offs. The case for the graph is the integrated model. The evidence (a path),
+the memory (a decision pointing at the facts it assumed, so one traversal finds what a new fact breaks), the algorithms (`PageRank` is built in and runs on the same data), the shared
+state (agents hand work to each other through the same store they query) and the isolation (`GRAPH.COPY` gives every upload its own graph in one instance) all live in one place and are
+queried in one language. Taking FalkorDB out would mean rebuilding each of those as a separate mechanism and keeping them consistent with each other.
 
 The benchmark also caught a real bug in this project's own parser: peer dependencies were being treated as installs, which could name the wrong package to bump. It is fixed and tested.
 
@@ -345,6 +359,7 @@ The benchmark also caught a real bug in this project's own parser: peer dependen
 | HTTP | Content-Security-Policy that allows scripts only from the site itself, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, a restrictive Permissions-Policy, framing allowed only by the site and Hugging Face; no inline scripts; pages revalidated on every load |
 | Output | All dynamic text is escaped before display; the checker builds its page with `textContent` |
 | Read-only mode | `PLUMBLINE_APPROVALS=off` disables recording approvals; `PLUMBLINE_TRUST_PROXY=1` counts visitors by `X-Forwarded-For` behind a proxy (set in the image) |
+| Durability | Approvals are appended to a file and reloaded at start; a damaged file is read line by line and compacted; what-ifs stay in memory only |
 | Honest failure | A failing model never breaks the agent or shows ungrounded text; a refused upload leaves no graph behind |
 
 One thing found during hardening is worth recording: FalkorDB can panic on a query that returns a property no node in that graph has ever had. Every uploaded graph is therefore stamped with
@@ -454,7 +469,7 @@ scripts/               probe_fleet.py, make_storefront_fixture.py, make_check_sa
 - Only npm lockfiles v2 and v3 are read; yarn, pnpm and v1 are refused.
 - The checker only knows the incident's six advisories and whatever versions the user lists; it is not a general vulnerability database.
 - A tuned SQL query answers the lookup questions as correctly, and faster, as the graph does. The benchmark states this.
-- Approvals and what-ifs live in the server's memory and are forgotten on restart; the work queue lives in the graph until it is reloaded.
+- Approvals survive a restart (they are kept in a file); what-ifs are forgotten on restart by design; the work queue lives in the graph and is cleared when the graph is rebuilt. On a host whose disk is erased on restart, set `PLUMBLINE_STATE_DIR` to persistent storage or approvals go with it.
 - The benchmark graded 10 of 18 repositories (the other 8 are excluded for stated reasons).
 - Integration tests require a running FalkorDB.
 - The recorded GitHub Pages copy has no checker, no free-text agent, no approvals and no work queue; it says so where those would be.
