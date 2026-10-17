@@ -86,6 +86,14 @@ def _llm_allowed() -> bool:
 def create_app() -> FastAPI:
     app = FastAPI(title="Plumbline", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
+    @app.middleware("http")
+    async def revalidate_static_files(request, call_next):
+        """Browsers otherwise keep serving old scripts and pages after an update; this makes them ask each time."""
+        response = await call_next(request)
+        if not request.url.path.startswith("/api/") and not request.url.path.startswith("/fonts/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/api/health")
     def health() -> dict:
         n = connect().ro_query("MATCH (a:Artifact) RETURN count(a)").result_set[0][0]
