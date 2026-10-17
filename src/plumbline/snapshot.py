@@ -47,7 +47,7 @@ def timeline(graph: Graph) -> list[dict]:
 def _event_view(e: dict) -> dict:
     return {"at": e["at"], "type": e["type"], "scripted": bool(e.get("scripted")), "advisory": e["advisory"],
             "artifact": e.get("artifact"), "add_purls": e.get("add_purls"), "note": e.get("note", ""),
-            "approver": e.get("approver"), "manual": bool(e.get("manual"))}
+            "approver": e.get("approver"), "manual": bool(e.get("manual")), "visitor": bool(e.get("visitor"))}
 
 
 def snapshot(graph: Graph, at_ms: int, extra: list[dict] | None = None) -> dict:

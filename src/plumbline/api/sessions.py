@@ -67,9 +67,13 @@ class Approvals:
             recent = [t for t in self._recent.get(client, []) if now - t < 3600]
             self._recent[client] = recent
             if len(recent) >= self.per_hour:
-                raise Refused(f"at most {self.per_hour} approvals per hour from one address", 429)
+                raise Refused(f"at most {self.per_hour} approvals or what-ifs per hour from one address", 429)
             if len(self._by_session.get(session, [])) >= self.max_per_session:
-                raise Refused(f"a session can hold at most {self.max_per_session} approvals", 429)
+                raise Refused(f"a session can hold at most {self.max_per_session} approvals and what-ifs", 429)
+
+    def clear(self, session: str) -> None:
+        with self._lock:
+            self._by_session.pop(session, None)
 
     def add(self, session: str, client: str, event: dict) -> None:
         with self._lock:

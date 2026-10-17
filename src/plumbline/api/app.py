@@ -25,7 +25,7 @@ from plumbline.graphdata import artifact_graph
 from plumbline.memory import tasks
 from plumbline.memory.decisions import propose
 from plumbline.memory.replay import seek
-from plumbline.snapshot import build_meta, snapshot
+from plumbline.snapshot import advisories_at, build_meta, snapshot
 from plumbline.timeutil import to_iso, to_ms
 from plumbline.triage.engine import triage_artifact
 from plumbline.triage.receipt import make_receipt, verify
@@ -62,6 +62,12 @@ class ApproveBody(BaseModel):
     artifact: str
     at: str
     approver: str = Field(min_length=1, max_length=80)
+
+
+class ReviseBody(BaseModel):
+    advisory: str
+    version: str = Field(pattern=r"^\d{1,6}\.\d{1,6}\.\d{1,6}(-[0-9A-Za-z.]{1,24})?$")
+    at: str
 
 
 class CheckBody(BaseModel):
@@ -193,6 +199,38 @@ def create_app() -> FastAPI:
             snap = snapshot(connect(), at_ms, approvals.history(sid))
             _remember((at_ms, approvals.digest(sid)), snap)
             return {"decision": proposal.decision_id, "snapshot": snap}
+
+    @app.post("/api/revise")
+    def revise(body: ReviseBody, request: Request, response: Response) -> dict:
+        """A what-if that belongs to this visitor: suppose the advisory also named this version, as of this moment.
+        It is replayed for this visitor only and is labelled hypothetical everywhere it is shown."""
+        at_ms = _parse_at(body.at)
+        sid, client = _session(request, response), _client_id(request)
+        try:
+            approvals.check_allowed(sid, client)
+        except Refused as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
+        with _lock:
+            advisory = next((a for a in advisories_at(connect(), at_ms) if a["id"] == body.advisory), None)
+            if advisory is None:
+                raise HTTPException(404, f"{body.advisory} is not published at {body.at}")
+            purl = f"pkg:npm/{advisory['package']}@{body.version}"
+            known = {p for a in snapshot(connect(), at_ms, approvals.history(sid))["advisories"]
+                     if a["id"] == body.advisory for p in a["affected_purls"]}
+            if purl in known:
+                raise HTTPException(422, f"{advisory['package']}@{body.version} is already named by {body.advisory}")
+            approvals.add(sid, client, {
+                "at": to_iso(at_ms), "type": "advisory_revised", "scripted": True, "visitor": True, "advisory": body.advisory,
+                "add_purls": [purl], "note": "Added by you as a what-if. No real advisory names this version."})
+            snap = snapshot(connect(), at_ms, approvals.history(sid))
+            _remember((at_ms, approvals.digest(sid)), snap)
+            return {"snapshot": snap}
+
+    @app.delete("/api/revise")
+    def clear_revisions(request: Request, response: Response) -> dict:
+        """Forget this visitor's what-ifs (and approvals), returning them to the recorded incident."""
+        approvals.clear(_session(request, response))
+        return {"cleared": True}
 
     @app.get("/api/tasks")
     def get_tasks(status: str = "") -> dict:

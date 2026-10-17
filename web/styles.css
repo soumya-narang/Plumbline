@@ -578,3 +578,11 @@ html { overscroll-behavior-y: none; }
 .wtag { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 .witem.open .wtag { color: var(--flag-ink); }
 .witem.done .wtag { color: var(--ink-3); }
+
+/* What-if form */
+#whatif { margin-top: 30px; }
+.whatif { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.whatif select, .whatif input { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--hair-2); background: var(--surface); color: var(--ink); font: inherit; min-width: 0; }
+.whatif input { width: 7.5em; font-family: var(--mono); }
+.wi-msg { min-height: 1.4em; margin-top: 8px; font-size: .9rem; color: var(--flag-ink); }
+#wi-clear { margin-top: 10px; }

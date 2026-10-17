@@ -7,6 +7,7 @@ import { VERDICT_RANK, esc, factView, plural } from "./format.js";
 import { createMap } from "./map.js";
 import { initBench } from "./bench.js";
 import { refreshWork } from "./work.js";
+import { renderWhatIf } from "./whatif.js";
 import { initHood } from "./hood.js";
 import { createRail } from "./rail.js";
 import { createSpring } from "./spring.js";
@@ -104,7 +105,7 @@ function renderNotice(snap) {
   const r = snap.reopened[0];
   const names = snap.reopened.map((x) => esc(x.artifact)).join(", ");
   el.innerHTML = `<div class="notice"><div><strong>${plural(snap.reopened.length, "decision")} reopened: ${names}</strong>
-      <span class="why">${esc(factView(r.broken[0]).label)} was assumed, until a <span class="hypo-tag">hypothetical</span> advisory revision named it. The event is scripted for this demonstration and is not a real record.</span></div>
+      <span class="why">${esc(factView(r.broken[0]).label)} was assumed, until a <span class="hypo-tag">hypothetical</span> advisory revision named it. ${snap.events.some((e) => e.visitor) ? "You added that revision as a what-if; it is not a real record." : "The event is scripted for this demonstration and is not a real record."}</span></div>
     <button type="button" class="btn" id="review">Review</button></div>`;
   $("review").onclick = () => { state.sel = { advisory: r.advisory, artifact: r.artifact }; setTab("evidence"); render(); $("sheet").focus(); };
 }
@@ -132,6 +133,7 @@ function render(changed = new Set()) {
   renderEvidence(snap, sel, ctx, { onApprove, onVerify });
   renderDecisions(snap, sel, (advisory, artifact) => { state.sel = { advisory, artifact }; setTab("evidence"); render(); });
   renderNotice(snap);
+  renderWhatIf(snap, { onRevise, onClear });
   map.show(snap, sel);
 }
 
@@ -143,6 +145,20 @@ async function onApprove(advisory, artifact, approver) {
   } catch (err) {
     toast(`<b>Not recorded.</b> ${esc(err.message)}`);
   }
+}
+
+async function onRevise(advisory, version) {
+  const res = await api.revise(advisory, version, state.stop);
+  state.snap = res.snapshot;
+  await reconcileSelection(state.snap);
+  render();
+}
+
+async function onClear() {
+  await api.clearRevisions();
+  state.snap = await api.getSnapshot(state.stop);
+  await reconcileSelection(state.snap);
+  render();
 }
 
 async function onVerify(advisory, artifact) {

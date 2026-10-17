@@ -56,6 +56,16 @@ export async function approve(advisory, artifact, stop, approver) {
   });
 }
 
+export async function revise(advisory, version, stop) {
+  return getJson("api/revise", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ advisory, version, at: stop.at }),
+  });
+}
+
+export const clearRevisions = () => getJson("api/revise", { method: "DELETE" });
+
 export async function verifyReceipt(advisory, artifact, stop) {
   const receipt = await getJson(
     `api/receipt?advisory=${encodeURIComponent(advisory)}&artifact=${encodeURIComponent(artifact)}&at=${encodeURIComponent(stop.at)}`,

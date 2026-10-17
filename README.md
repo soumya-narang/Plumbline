@@ -56,6 +56,12 @@ On a shared deployment each visitor has their own approval history (kept by a se
 alone), approvals are limited to ten per hour per address, and `PLUMBLINE_APPROVALS=off` makes the site read-only.
 Set `PLUMBLINE_TRUST_PROXY=1` when running behind a proxy that sets `X-Forwarded-For`, so limits count real clients.
 
+The one scripted event in the recorded replay (a second poisoned keyv release added to the advisory) is labelled hypothetical
+everywhere. The real advisory only ever named 6.0.0, so there is no real revision to replay. To test the reopen mechanism on
+your own terms, use "Try a what-if" under the Decisions tab: add any version to any advisory from the time on the clock and
+exactly the decisions that assumed otherwise reopen (for example adding keyv 4.5.4 reopens the approved-as-cleared mocha
+decision). What-ifs are per visitor, hypothetical, and never written to the recorded incident.
+
 ## Graph data model
 
 ```

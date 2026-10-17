@@ -117,3 +117,65 @@ def test_the_snapshot_cache_is_bounded(monkeypatch):
     for hour in range(8, 14):
         c.get("/api/snapshot", params={"at": f"2026-08-04T{hour:02d}:00:00Z"})
     assert len(app_module._cache) <= 3
+
+
+def revise(c, version="6.0.1", advisory=ADVISORY, at="2026-08-04T12:00:00Z"):
+    return c.post("/api/revise", json={"advisory": advisory, "version": version, "at": at})
+
+
+def snap(c, at):
+    return c.get("/api/snapshot", params={"at": at}).json()
+
+
+def test_a_visitor_can_author_a_revision_and_see_exactly_what_it_reopens():
+    c = visitor()
+    # mocha was approved as CLEARED while it locks keyv@4.5.4. If the advisory also named 4.5.4, only that decision breaks.
+    r = revise(c, "4.5.4", at="2026-08-04T12:30:00Z")
+    assert r.status_code == 200
+    reopened = {x["artifact"]: x for x in r.json()["snapshot"]["reopened"]}
+    assert set(reopened) == {"mochajs/mocha"}
+    assert reopened["mochajs/mocha"]["before"] == "CLEARED" and reopened["mochajs/mocha"]["now"] == "EXPOSED"
+    assert any(e["visitor"] and e["add_purls"] == ["pkg:npm/keyv@4.5.4"] for e in r.json()["snapshot"]["events"])
+
+
+def test_what_ifs_belong_to_the_visitor_who_made_them():
+    a, b = visitor(), visitor()
+    revise(a, "4.5.4", at="2026-08-04T12:30:00Z")
+    assert [x["artifact"] for x in snap(a, "2026-08-04T12:30:00Z")["reopened"]] == ["mochajs/mocha"]
+    assert snap(b, "2026-08-04T12:30:00Z")["reopened"] == []
+
+
+def test_a_what_if_applies_from_its_moment_not_before_it():
+    c = visitor()
+    revise(c, "4.5.4", at="2026-08-04T13:00:00Z")
+    assert not [e for e in snap(c, "2026-08-04T12:00:00Z")["events"] if e["visitor"]]
+    assert [e for e in snap(c, "2026-08-04T14:00:00Z")["events"] if e["visitor"]]
+
+
+def test_removing_what_ifs_returns_to_the_recorded_incident():
+    c = visitor()
+    revise(c, "6.0.9", at="2026-08-04T13:00:00Z")
+    assert c.delete("/api/revise").json() == {"cleared": True}
+    assert not [e for e in snap(c, "2026-08-04T13:00:00Z")["events"] if e["visitor"]]
+
+
+@pytest.mark.parametrize("version", ["", "latest", "6.0", "6.0.1; DROP", "../6.0.1", "1.2.3-" + "a" * 40, "-1.0.0", "6.0.1 "])
+def test_only_a_plain_version_number_is_accepted(version):
+    assert revise(visitor(), version).status_code == 422
+
+
+def test_a_version_the_advisory_already_names_is_refused():
+    r = revise(visitor(), "6.0.0")
+    assert r.status_code == 422 and "already named" in r.json()["detail"]
+
+
+def test_an_advisory_that_is_not_published_yet_cannot_be_revised():
+    r = revise(visitor(), "6.0.1", at="2026-08-04T11:00:00Z")
+    assert r.status_code == 404 and "not published" in r.json()["detail"]
+    assert revise(visitor(), "6.0.1", advisory="MAL-0000-0").status_code == 404
+
+
+def test_what_ifs_share_the_visitors_hourly_limit(monkeypatch):
+    monkeypatch.setattr(app_module, "approvals", Approvals(per_hour=2))
+    c = visitor()
+    assert [revise(c, f"7.0.{i}", at="2026-08-04T13:00:00Z").status_code for i in range(3)] == [200, 200, 429]
