@@ -52,6 +52,10 @@ Step through the incident with the timeline (or press play). The page also runs 
 see [docs/deploy.md](docs/deploy.md). The agent reaches the graph only through an MCP server (`python -m plumbline.agent.mcp_server`)
 exposing eight read-only tools, including a fleet-wide fix-first query and PageRank. Approving a decision is a human action and is deliberately not a tool.
 
+On a shared deployment each visitor has their own approval history (kept by a session cookie and replayed for that visitor
+alone), approvals are limited to ten per hour per address, and `PLUMBLINE_APPROVALS=off` makes the site read-only.
+Set `PLUMBLINE_TRUST_PROXY=1` when running behind a proxy that sets `X-Forwarded-For`, so limits count real clients.
+
 ## Graph data model
 
 ```

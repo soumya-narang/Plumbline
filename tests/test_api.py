@@ -1,7 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from plumbline.api.app import _cache, _manual, create_app
+from plumbline.api import app as app_module
+from plumbline.api.app import _cache, create_app
+from plumbline.api.sessions import Approvals
 from plumbline.graph.client import connect
 from plumbline.memory.replay import reset
 
@@ -19,11 +21,11 @@ def client():
     if not n:
         pytest.skip("graph is empty; run `python -m plumbline load`")
     _cache.clear()
-    _manual.clear()
+    app_module.approvals = Approvals()
     reset(g)
     yield TestClient(create_app())
     _cache.clear()
-    _manual.clear()
+    app_module.approvals = Approvals()
     reset(g)
 
 

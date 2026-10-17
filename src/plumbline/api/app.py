@@ -12,13 +12,14 @@ import os
 import threading
 import time
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from plumbline import config, tenants
 from plumbline.agent.runner import ask
+from plumbline.api.sessions import COOKIE, Approvals, Refused, clean_name
 from plumbline.graph.client import connect
 from plumbline.graphdata import artifact_graph
 from plumbline.memory.decisions import propose
@@ -44,8 +45,9 @@ SECURITY_HEADERS = {
 }
 
 _lock = threading.RLock()
-_cache: dict[tuple[int, int], dict] = {}
-_manual: list[dict] = []  # manual approvals, re-applied by every replay
+_cache: dict[tuple[int, str], dict] = {}
+CACHE_LIMIT = 400
+approvals = Approvals(enabled=os.getenv("PLUMBLINE_APPROVALS", "on") != "off")
 _llm_calls: list[float] = []
 
 
@@ -80,13 +82,30 @@ def _client_id(request: Request) -> str:
     return hashlib.sha256(host.encode()).hexdigest()[:12]
 
 
-def _snapshot(at_ms: int) -> dict:
+def _session(request: Request, response: Response) -> str:
+    """The visitor's session id from its cookie, issuing one on first contact."""
+    sid = request.cookies.get(COOKIE)
+    if not sid or len(sid) != 32 or not all(c in "0123456789abcdef" for c in sid):
+        sid = approvals.new_session()
+        secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+        response.set_cookie(COOKIE, sid, max_age=86_400, httponly=True, samesite="lax", secure=secure)
+    return sid
+
+
+def _remember(key: tuple[int, str], snap: dict) -> dict:
+    if len(_cache) >= CACHE_LIMIT:
+        _cache.clear()
+    _cache[key] = snap
+    return snap
+
+
+def _snapshot(at_ms: int, sid: str) -> dict:
     with _lock:
-        key = (at_ms, len(_manual))
+        history = approvals.history(sid)
+        key = (at_ms, approvals.digest(sid))
         if key not in _cache:
-            _cache[key] = snapshot(connect(), at_ms, list(_manual))
-        else:  # keep the graph's memory aligned with the cursor the caller is about to read
-            seek(connect(), at_ms, list(_manual))
+            return _remember(key, snapshot(connect(), at_ms, history))
+        seek(connect(), at_ms, history)  # keep the graph's memory aligned with the cursor the caller is about to read
         return _cache[key]
 
 
@@ -136,35 +155,42 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/api/snapshot")
-    def get_snapshot(at: str) -> dict:
-        return _snapshot(_parse_at(at))
+    def get_snapshot(at: str, request: Request, response: Response) -> dict:
+        return _snapshot(_parse_at(at), _session(request, response))
 
     @app.post("/api/ask")
-    async def post_ask(body: AskBody) -> dict:
+    async def post_ask(body: AskBody, request: Request, response: Response) -> dict:
         at_ms = _parse_at(body.at)
+        history = approvals.history(_session(request, response))
         settings = config.load_settings()
         backend = "llm" if settings.llm_configured and _llm_allowed() else "planner"
 
         def work() -> dict:
             with _lock:
-                seek(connect(), at_ms, list(_manual))
+                seek(connect(), at_ms, history)
                 return asyncio.run(ask(body.question, to_iso(at_ms), settings, backend)).to_dict()
 
         return await asyncio.to_thread(work)
 
     @app.post("/api/approve")
-    def approve(body: ApproveBody) -> dict:
+    def approve(body: ApproveBody, request: Request, response: Response) -> dict:
         at_ms = _parse_at(body.at)
+        sid, client = _session(request, response), _client_id(request)
+        try:
+            approver = clean_name(body.approver)
+            approvals.check_allowed(sid, client)
+        except Refused as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
         with _lock:
-            seek(connect(), at_ms, list(_manual))
+            seek(connect(), at_ms, approvals.history(sid))
             try:
                 proposal = propose(connect(), body.advisory, body.artifact, at_ms)
             except LookupError as exc:
                 raise HTTPException(404, str(exc)) from exc
-            _manual.append({"at": to_iso(at_ms), "type": "approve", "advisory": body.advisory,
-                            "artifact": body.artifact, "approver": body.approver, "manual": True})
-            snap = snapshot(connect(), at_ms, list(_manual))
-            _cache[(at_ms, len(_manual))] = snap
+            approvals.add(sid, client, {"at": to_iso(at_ms), "type": "approve", "advisory": body.advisory,
+                                        "artifact": body.artifact, "approver": approver, "manual": True})
+            snap = snapshot(connect(), at_ms, approvals.history(sid))
+            _remember((at_ms, approvals.digest(sid)), snap)
             return {"decision": proposal.decision_id, "snapshot": snap}
 
     @app.post("/api/check")

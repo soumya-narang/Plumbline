@@ -6,7 +6,10 @@ const staticCache = new Map();
 
 async function getJson(url, options) {
   const res = await fetch(url, options);
-  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.json().then((b) => b.detail, () => null); // the server's reason, when it gave one
+    throw new Error(typeof detail === "string" ? detail : `${url}: ${res.status}`);
+  }
   return res.json();
 }
 
