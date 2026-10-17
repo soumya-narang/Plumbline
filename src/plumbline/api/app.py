@@ -31,6 +31,18 @@ from plumbline.triage.receipt import make_receipt, verify
 WEB_DIR = config.ROOT / "web"
 LLM_MAX_PER_HOUR = int(os.getenv("LLM_MAX_ASKS_PER_HOUR", "60"))
 
+# No script runs unless it is a file served from here. Inline styles are allowed because the UI sets CSS variables
+# per element. The page may be framed only by itself and by Hugging Face, which embeds Spaces.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; "
+        "frame-ancestors 'self' https://huggingface.co https://*.hf.space"),
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+}
+
 _lock = threading.RLock()
 _cache: dict[tuple[int, int], dict] = {}
 _manual: list[dict] = []  # manual approvals, re-applied by every replay
@@ -95,13 +107,16 @@ def _llm_allowed() -> bool:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Plumbline", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title="Plumbline", docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
 
     @app.middleware("http")
-    async def revalidate_static_files(request, call_next):
-        """Browsers otherwise keep serving old scripts and pages after an update; this makes them ask each time."""
+    async def harden_responses(request, call_next):
+        """Security headers on everything; and pages and scripts are revalidated, because browsers otherwise keep
+        serving old copies after an update."""
         response = await call_next(request)
-        if not request.url.path.startswith("/api/") and not request.url.path.startswith("/fonts/"):
+        response.headers.update(SECURITY_HEADERS)
+        path = request.url.path
+        if not path.startswith("/api/") and not path.startswith("/fonts/"):
             response.headers["Cache-Control"] = "no-cache"
         return response
 
@@ -206,7 +221,7 @@ def create_app() -> FastAPI:
         return {"ok": ok, "detail": detail}
 
     if WEB_DIR.exists():
-        @app.get("/")
+        @app.api_route("/", methods=["GET", "HEAD"])
         def index() -> FileResponse:
             return FileResponse(WEB_DIR / "index.html")
 
