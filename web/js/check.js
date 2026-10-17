@@ -5,6 +5,7 @@ const SAMPLE_NOTES = {
   "exposed-hand-authored.json": "A small lockfile written for the demo. keyv 6.0.0 sits three packages below the dependency you chose.",
   "exposed-real-nodemailer-edited.json": "nodemailer's real lockfile (180 packages). Its keyv was 4.5.4, safe; this copy changes that one version to the poisoned 6.0.0. The path is real: eslint, file-entry-cache, flat-cache, keyv. You can confirm it with npm (see the README); npm also complains that 6.0.0 breaks flat-cache's version range, which is what a hand edit looks like.",
   "clear-real-nodemailer.json": "nodemailer's real lockfile, untouched. It does contain keyv (4.5.4), so a naive text search would flag it; the graph says it is not an affected version.",
+  "clear-real-nodemailer.json|keyv@4.5.4": "The same untouched real lockfile, but with keyv@4.5.4 entered as a bad version of your own. Nothing in the file changed, yet the graph now finds the real path eslint, file-entry-cache, flat-cache, keyv.",
 };
 
 const WHY = {
@@ -74,18 +75,18 @@ function show(r, graph) {
   const head = el("div", "headline " + (exposed.length ? "hot" : unknown.length ? "unsure" : "cold"));
   if (exposed.length) {
     const fix = [...new Set(exposed.flatMap((f) => f.pulled_by || []))];
-    head.append(el("b", null, "Exposed: the poisoned release is in this project"),
+    head.append(el("b", null, "Exposed: a listed version is in this project"),
       el("span", null, `${exposed.length} affected ${exposed.length === 1 ? "package" : "packages"} locked. ` + (fix.length ? `Bump ${fix.join(", ")} to remove the way in.` : "")));
   } else if (unknown.length) {
     head.append(el("b", null, "Could not be decided"), el("span", null, "See the findings below for what is missing."));
   } else {
-    head.append(el("b", null, "Clear: none of the poisoned versions are locked"),
-      el("span", null, `Checked ${r.packages} installed packages against ${r.findings.length} affected packages from the incident.`));
+    head.append(el("b", null, "Clear: none of the listed versions are locked"),
+      el("span", null, `Checked ${r.packages} installed packages against ${r.findings.length} packages: the 4 August incident${r.findings.some((f) => f.advisory.startsWith("YOUR-LIST")) ? " and your list" : ""}.`));
   }
   $("headline").replaceChildren(head);
 
   $("stats").replaceChildren(
-    ...[`${r.packages} installs in the graph`, `${r.work.graph.requirements} requirement edges`, `${r.findings.length} advisories checked`].map((t) => el("span", null, t)));
+    ...[`${r.packages} installs in the graph`, `${r.work.graph.requirements} requirement edges`, `${r.findings.length} packages checked`].map((t) => el("span", null, t)));
 
   const list = $("list"); list.replaceChildren();
   const cleared = el("details", "cleared");
@@ -143,7 +144,8 @@ $("go").onclick = async () => {
   $("go").disabled = true;
   try {
     const r = await call("/api/check", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ lockfile: $("lock").value, label: $("label").value }) });
+      body: JSON.stringify({ lockfile: $("lock").value, label: $("label").value,
+        extra: $("extra").value.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean) }) });
     show(r, await call(`/api/check/${r.tenant}/graph`));
   } catch (e) { err.textContent = e.message; err.style.display = "block"; }
   $("go").disabled = false;
@@ -163,9 +165,18 @@ $("file").onchange = async (e) => {
 };
 
 $("sample").onchange = async (e) => {
-  const name = e.target.value;
-  if (!name) return;
+  const choice = e.target.value;
+  if (!choice) return;
+  const [name, extra = ""] = choice.split("|");
   $("lock").value = await (await fetch("samples/" + name)).text();
-  $("sample-note").textContent = SAMPLE_NOTES[name];
+  $("extra").value = extra;
+  $("extra-box").open = Boolean(extra);
+  $("sample-note").textContent = SAMPLE_NOTES[choice];
   $("label").value = name.replace(/\.json$/, "");
 };
+
+// The recorded (static) site has no API. Say so up front instead of failing on the first click.
+fetch("api/health").then((r) => { if (!r.ok) throw new Error(); return r.json(); }).catch(() => {
+  $("go").disabled = true;
+  $("offline").hidden = false;
+});

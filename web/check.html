@@ -58,19 +58,24 @@
 <main>
   <p class="note"><a href="/">&larr; Plumbline</a></p>
   <h1>Check your own lockfile</h1>
-  <p class="lead">Is the poisoned <code>keyv</code> / <code>@cacheable</code> release (4 August 2026) anywhere in your project, and how does it get in? Your lockfile is loaded into its own FalkorDB graph, the graph is queried, and the answer comes back with the path. Deleted after 30 minutes. Up to three checks per visitor. Nothing is installed or run.</p>
+  <p class="lead">Is a poisoned package version anywhere in your project, and how does it get in? Your lockfile is loaded into its own FalkorDB graph, the graph is queried, and the answer comes back with the path. It always checks the <code>keyv</code> / <code>@cacheable</code> release of 4 August 2026, and you can add any versions of your own below. It is not a general vulnerability scanner: it checks only the versions named here. Deleted after 30 minutes. Up to three checks per visitor. Nothing is installed or run.</p>
 
   <div class="box">
     <details class="accept">
       <summary>What can I upload?</summary>
       <ul>
         <li><b>A <code>package-lock.json</code></b> (or <code>npm-shrinkwrap.json</code>) written by npm 7 or newer, i.e. <code>"lockfileVersion": 2</code> or <code>3</code>. This is the file npm creates next to <code>package.json</code> after <code>npm install</code>.</li>
-        <li>Plain JSON, up to 4 MB, 8,000 packages and 20,000 dependency links (real projects are well under half of that).</li>
+        <li>Plain JSON, up to 4 MB, 8,000 packages and 20,000 dependency links (real projects are well under half of that). You can also list package versions to check beyond the incident.</li>
         <li><b>Not supported:</b> <code>yarn.lock</code>, <code>pnpm-lock.yaml</code>, and old v1 lockfiles from npm 6. For a v1 file, run <code>npm install --package-lock-only</code> with a recent npm to regenerate it.</li>
         <li>A lockfile is a list of exact versions, so it contains no secrets. Still, only paste projects you are happy to analyse.</li>
       </ul>
     </details>
     <textarea id="lock" spellcheck="false" placeholder="Paste package-lock.json here, choose a file, or load a sample"></textarea>
+    <details class="accept" id="extra-box" style="margin:12px 0 0">
+      <summary>Also check specific package versions (optional)</summary>
+      <p class="note" style="margin:6px 0">One per line, as <code>package@version</code>, for example <code>left-pad@1.3.0</code> or <code>@scope/name@2.0.1</code>. Up to 10. They are added to your graph as an advisory and judged the same way.</p>
+      <textarea id="extra" spellcheck="false" rows="3" style="min-height:70px" placeholder="keyv@4.5.4"></textarea>
+    </details>
     <div class="row">
       <input id="file" type="file" accept=".json,application/json">
       <select id="sample" aria-label="Sample lockfile">
@@ -78,12 +83,14 @@
         <option value="exposed-hand-authored.json">Exposed: hand-authored, 3 levels deep</option>
         <option value="exposed-real-nodemailer-edited.json">Exposed: real project, one line edited</option>
         <option value="clear-real-nodemailer.json">Clear: real project, unmodified</option>
+        <option value="clear-real-nodemailer.json|keyv@4.5.4">Exposed: real project, unmodified, your own bad version</option>
       </select>
       <input id="label" type="text" maxlength="60" placeholder="Name (optional)">
       <button id="go" type="button">Check</button>
     </div>
     <p class="note" id="sample-note" style="margin:10px 0 0"></p>
     <div id="err" role="alert"></div>
+    <p id="offline" class="note" hidden style="margin-top:10px">This recorded copy of the site has no server behind it, so it cannot read your lockfile. Run the project locally (see the README) or open the live deployment to use the checker.</p>
   </div>
 
   <section id="out" aria-live="polite">

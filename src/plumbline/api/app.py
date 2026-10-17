@@ -73,6 +73,7 @@ class ReviseBody(BaseModel):
 class CheckBody(BaseModel):
     lockfile: str = Field(min_length=2, max_length=4_100_000)
     label: str = Field(default="", max_length=80)
+    extra: list[str] = Field(default_factory=list, max_length=20)  # package@version entries to check as well
 
 
 class VerifyBody(BaseModel):
@@ -244,7 +245,7 @@ def create_app() -> FastAPI:
     def post_check(body: CheckBody, request: Request) -> dict:
         """Check your own lockfile: it gets its own graph and is judged against the incident's advisories."""
         try:
-            return tenants.create(body.lockfile.encode("utf-8"), body.label, _client_id(request))
+            return tenants.create(body.lockfile.encode("utf-8"), body.label, _client_id(request), [e[:120] for e in body.extra])
         except tenants.TenantError as exc:
             raise HTTPException(422, str(exc)) from exc
 

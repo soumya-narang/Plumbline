@@ -104,6 +104,8 @@ fleet graph. The upload is judged against the incident's advisories with the sam
 dependency path, the direct dependency to bump, and the assumptions behind each verdict. Checks are deleted after 30
 minutes; uploads are parsed, never installed or executed. It accepts an npm `package-lock.json` or `npm-shrinkwrap.json`
 (`lockfileVersion` 2 or 3, up to 4 MB, 8,000 packages and 20,000 dependency links; three open checks per client); yarn, pnpm and v1 lockfiles are refused with a reason.
+Beyond the incident's advisories you can list your own bad versions (`package@version`, up to ten) and they are loaded into
+your graph as an advisory and judged the same way, so the checker is not tied to one incident.
 The page offers three samples (made by `scripts/make_check_samples.py`): a hand-authored exposed lockfile, a real unmodified
 project that locks a safe `keyv` and is correctly cleared, and that real project with one version edited to the poisoned
 release, which is correctly found through a four-package path. To cross-check a verdict against npm itself, put the

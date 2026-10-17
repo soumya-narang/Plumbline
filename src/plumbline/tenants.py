@@ -19,11 +19,16 @@ from falkordb import Graph
 from redis.exceptions import ResponseError
 
 from plumbline.graph.client import connect, database, read_query_text, run_named
-from plumbline.graph.loader import load_advisory_rows, load_artifact_rows, load_lockgraph_rows
+from plumbline.graph.loader import (
+    load_advisory_list,
+    load_advisory_rows,
+    load_artifact_rows,
+    load_lockgraph_rows,
+)
 from plumbline.graph.schema import apply_schema
 from plumbline.graphdata import artifact_graph
 from plumbline.ingest.lockgraph import rows_for
-from plumbline.ingest.npm_lock import UnsupportedLockfile, parse_npm_lock
+from plumbline.ingest.npm_lock import UnsupportedLockfile, parse_npm_lock, purl_for
 from plumbline.snapshot import advisories_at
 from plumbline.timeutil import now_ms, to_iso
 from plumbline.triage.engine import triage_advisory
@@ -38,7 +43,10 @@ MAX_EDGES = 20_000  # the largest real lockfile we have has under 5,000; a dense
 MAX_TENANTS = 25
 MAX_PER_OWNER = 3
 TTL_MS = 30 * 60 * 1000
+MAX_EXTRA = 10
 _ID = re.compile(r"^[0-9a-f]{32}$")
+_NAME = re.compile(r"^(@[a-z0-9][a-z0-9._~-]{0,213}/)?[a-z0-9][a-z0-9._~-]{0,213}$")
+_VERSION = re.compile(r"^\d{1,6}\.\d{1,6}\.\d{1,6}(-[0-9A-Za-z.-]{1,32})?(\+[0-9A-Za-z.-]{1,32})?$")
 
 _lock = threading.Lock()  # guards the template, the capacity count and id reservation; never held while loading
 _template_ready = False
@@ -123,6 +131,24 @@ def _validate(raw: bytes):
     return parsed
 
 
+def parse_extra(entries: list[str]) -> list[dict]:
+    """Turn ``package@version`` lines into advisory rows, so a project can be checked against any list of bad versions."""
+    by_package: dict[str, set[str]] = {}
+    given = [e.strip() for e in entries if e.strip()]
+    if len(given) > MAX_EXTRA:
+        raise TenantError(f"at most {MAX_EXTRA} package versions can be checked at once")
+    for entry in given:
+        name, sep, version = entry.rpartition("@")
+        if not sep or not name or not _NAME.match(name) or not _VERSION.match(version):
+            raise TenantError(f'"{entry[:60]}" is not a package version; write it as package@version, for example left-pad@1.3.0')
+        by_package.setdefault(name, set()).add(version)
+    return [{
+        "id": f"YOUR-LIST-{i}", "kind": "CUSTOM", "package": name, "summary": f"From your list: {name}",
+        "published": "your list", "published_ms": 0,
+        "affected": [{"name": name, "version": v, "purl": purl_for(name, v)} for v in sorted(versions)]}
+        for i, (name, versions) in enumerate(sorted(by_package.items()), 1)]
+
+
 def _reserve(owner: str, artifact: dict, label: str) -> tuple[str, Graph]:
     """Check the limits and create the graph with its artifact and stamp already in place, quickly, under the lock.
 
@@ -152,14 +178,19 @@ def _reserve(owner: str, artifact: dict, label: str) -> tuple[str, Graph]:
         return tenant_id, graph
 
 
-def create(raw: bytes, label: str = "", owner: str = "") -> dict:
-    """Validate an upload, give it its own graph and return its first report."""
+def create(raw: bytes, label: str = "", owner: str = "", extra: list[str] | None = None) -> dict:
+    """Validate an upload, give it its own graph and return its first report.
+
+    ``extra`` is an optional list of ``package@version`` strings to check as well as the incident's advisories."""
     parsed = _validate(raw)
+    extra_rows = parse_extra(extra or [])
     label = re.sub(r"[^\w .@/-]", "", label)[:60] or "your project"
     tenant_id, graph = _reserve(owner, {
         "id": ARTIFACT_ID, "kind": "upload", "sha": None, "committed_at": None, "lockfile": "package-lock.json",
         "lock_state": "present", "lock_sha256": hashlib.sha256(raw).hexdigest(), "synthetic": False}, label)
     try:
+        if extra_rows:
+            load_advisory_list(graph, extra_rows)
         load_lockgraph_rows(graph, rows_for(ARTIFACT_ID, parsed))
     except Exception:
         graph.delete()  # never leave a half-filled graph holding a slot

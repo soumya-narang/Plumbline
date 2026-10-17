@@ -93,5 +93,10 @@ def load_advisory_rows(graph: Graph) -> int:
     return _run_batched(graph, "load/advisory", load_advisories())
 
 
+def load_advisory_list(graph: Graph, rows: list[dict]) -> int:
+    """Load advisory rows built elsewhere (for example a visitor's own list of bad versions)."""
+    return _run_batched(graph, "load/advisory", rows)
+
+
 def load_artifact_rows(graph: Graph, rows: list[dict]) -> int:
     return _run_batched(graph, "load/artifact", rows)

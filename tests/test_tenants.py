@@ -252,3 +252,53 @@ def test_a_failed_load_leaves_no_graph_and_frees_the_slot(monkeypatch):
     with pytest.raises(RuntimeError):
         tenants.create(CLEAN, owner="dave")
     assert len(tenants._tenant_names()) == before and not tenants._loading
+
+
+def test_your_own_list_of_bad_versions_is_judged_like_the_incident():
+    r = tenants.create((SAMPLES / "clear-real-nodemailer.json").read_bytes(), extra=["keyv@4.5.4"])
+    mine = [f for f in r["findings"] if f["advisory"].startswith("YOUR-LIST")]
+    assert len(r["findings"]) == 7 and len(mine) == 1 and mine[0]["verdict"] == "EXPOSED"
+    assert mine[0]["path"] == ["eslint@10.8.0", "file-entry-cache@8.0.0", "flat-cache@4.0.1", "keyv@4.5.4"]
+    assert mine[0]["pulled_by"] == ["eslint@10.8.0"]
+    incident = next(f for f in r["findings"] if f["package"] == "keyv" and not f["advisory"].startswith("YOUR-LIST"))
+    assert incident["verdict"] == "CLEARED"  # the incident's own verdict is unchanged by adding a list
+
+
+def test_a_list_that_names_nothing_the_project_locks_clears_it():
+    r = tenants.create(GATEWAY, extra=["left-pad@1.3.0", "@scope/none@2.0.0"])
+    assert [f["verdict"] for f in r["findings"] if f["advisory"].startswith("YOUR-LIST")] == ["CLEARED", "CLEARED"]
+
+
+def test_scoped_packages_and_several_versions_of_one_package_group_correctly():
+    rows = tenants.parse_extra(["@cacheable/utils@2.5.1", "@cacheable/utils@2.5.0", "keyv@6.0.0", " keyv@6.0.0 ", ""])
+    assert [(r["package"], [a["version"] for a in r["affected"]]) for r in rows] == [
+        ("@cacheable/utils", ["2.5.0", "2.5.1"]), ("keyv", ["6.0.0"])]
+    assert rows[0]["affected"][0]["purl"] == "pkg:npm/%40cacheable/utils@2.5.0"
+    assert tenants.create(GATEWAY, extra=["@cacheable/utils@2.5.1"])["summary"]["EXPOSED"] == 4  # incident's 3, plus the listed one
+
+
+@pytest.mark.parametrize("entry", ["keyv", "@6.0.0", "keyv@", "keyv@latest", "keyv@^6", "Keyv@6.0.0", "../x@1.0.0", "a b@1.0.0",
+                                   "keyv@1.0.0'}) DETACH DELETE n //", "x@" + "9" * 12 + ".0.0"])
+def test_a_malformed_entry_is_refused_with_an_example(entry):
+    with pytest.raises(tenants.TenantError, match="package@version"):
+        tenants.create(CLEAN, extra=[entry])
+
+
+def test_the_list_is_bounded():
+    with pytest.raises(tenants.TenantError, match="at most 10"):
+        tenants.create(CLEAN, extra=[f"p{i}@1.0.0" for i in range(11)])
+
+
+def test_a_refused_list_leaves_no_graph_behind():
+    before = len(tenants._tenant_names())
+    with pytest.raises(tenants.TenantError):
+        tenants.create(CLEAN, extra=["nonsense"])
+    assert len(tenants._tenant_names()) == before
+
+
+def test_the_list_works_over_http_and_is_validated_there_too():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    ok = client.post("/api/check", json={"lockfile": GATEWAY.decode(), "extra": ["left-pad@1.3.0"]})
+    assert ok.status_code == 200 and len(ok.json()["findings"]) == 7
+    assert client.post("/api/check", json={"lockfile": CLEAN.decode(), "extra": ["nonsense"]}).status_code == 422
+    assert client.post("/api/check", json={"lockfile": CLEAN.decode(), "extra": ["a@1.0.0"] * 21}).status_code == 422
