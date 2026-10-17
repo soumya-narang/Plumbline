@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from plumbline import config, tenants
 from plumbline.agent.runner import ask
-from plumbline.api.sessions import COOKIE, Approvals, Refused, clean_name
+from plumbline.api.sessions import COOKIE, Approvals, Refused, clean_name, state_file
 from plumbline.graph.client import connect
 from plumbline.graphdata import artifact_graph
 from plumbline.memory import tasks
@@ -48,7 +48,7 @@ SECURITY_HEADERS = {
 _lock = threading.RLock()
 _cache: dict[tuple[int, str], dict] = {}
 CACHE_LIMIT = 400
-approvals = Approvals(enabled=os.getenv("PLUMBLINE_APPROVALS", "on") != "off")
+approvals = Approvals(enabled=os.getenv("PLUMBLINE_APPROVALS", "on") != "off", path=state_file())
 _llm_calls: list[float] = []
 
 
@@ -229,8 +229,8 @@ def create_app() -> FastAPI:
 
     @app.delete("/api/revise")
     def clear_revisions(request: Request, response: Response) -> dict:
-        """Forget this visitor's what-ifs (and approvals), returning them to the recorded incident."""
-        approvals.clear(_session(request, response))
+        """Forget this visitor's what-ifs, returning them to the recorded incident. Their approvals are kept."""
+        approvals.clear_what_ifs(_session(request, response))
         return {"cleared": True}
 
     @app.get("/api/tasks")

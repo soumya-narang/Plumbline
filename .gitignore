@@ -22,3 +22,6 @@ data/raw/*
 Thumbs.db
 .idea/
 .vscode/
+
+# Approvals recorded through the site (durable across restarts, but local to a deployment)
+data/state/

@@ -22,7 +22,8 @@ COPY data ./data
 COPY web ./web
 COPY deploy/entrypoint.sh /entrypoint.sh
 
-RUN useradd --create-home --uid 1000 app && chmod +x /entrypoint.sh
+RUN useradd --create-home --uid 1000 app && chmod +x /entrypoint.sh \
+ && mkdir -p /app/data/state && chown app /app/data/state
 USER app
 # The platform in front of this container (Hugging Face Spaces, for example) sets X-Forwarded-For; without trusting it,
 # every visitor would look like one client to the per-client limits.
