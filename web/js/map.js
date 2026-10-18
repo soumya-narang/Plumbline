@@ -6,17 +6,17 @@ import { esc } from "./format.js";
 
 const EMPTY = { nodes: [], edges: [] };
 
-export function createMap() {
-  const host = document.getElementById("map");
+export function createMap(ids = { host: "map", caption: "map-caption", veil: "map-veil" }, opts = {}) {
+  const host = document.getElementById(ids.host);
   const canvas = host.querySelector("canvas");
-  const caption = document.getElementById("map-caption");
-  const veil = document.getElementById("map-veil");
+  const caption = document.getElementById(ids.caption);
+  const veil = document.getElementById(ids.veil);
   const cache = new Map();
   let shown = ""; // artifact currently on the canvas
   let sig = ""; // artifact + path: what is lit
   let token = 0;
 
-  const view = createGraphView(canvas, { interactive: true, labels: true, anchor: () => 0.5, padTop: 64 });
+  const view = createGraphView(canvas, { interactive: true, labels: true, anchor: () => 0.5, padTop: 64, ...opts });
 
   async function graphFor(artifact) {
     if (!cache.has(artifact)) cache.set(artifact, await api.getGraph(artifact));

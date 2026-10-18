@@ -1,6 +1,7 @@
 import {
   VERDICT_WORD, approverLabel, clock, esc, factView, grouped, highlightCypher, mark, plural, reasonText,
 } from "./format.js";
+import { brokenFacts, memorySvg } from "./memory.js";
 
 const X = 14; // x of the plumb line
 const GAP = 44; // vertical distance between joints
@@ -19,6 +20,8 @@ function plumbSvg(row, published) {
 
   path.forEach((name, i) => {
     const y = ys[i];
+    const top = i === 0 ? TOP : ys[i - 1];
+    parts.push(`<text class="rel" style="--d:${((i + 1) / path.length) * 0.7}s" x="${X + 10}" y="${(top + y) / 2 + 3}">${i === 0 ? "LOCKS" : "REQUIRES"}</text>`);
     const last = i === path.length - 1;
     const d = `${((i + 1) / path.length) * 0.7}s`;
     const note = last
@@ -93,6 +96,7 @@ export function renderEvidence(snap, sel, ctx, handlers) {
   const why = reopened
     ? `<div class="section reopened"><h4>Why this decision was reopened</h4>
         <p style="margin-bottom:8px">It was approved as <b>${esc(VERDICT_WORD[reopened.before])}</b> on the assumptions below. One stopped being true, so it is now <b>${esc(VERDICT_WORD[reopened.now])}</b>.</p>
+        ${memorySvg(snap.decisions, brokenFacts(snap), { focus: reopened.decision })}
         ${assumptions((snap.decisions.find((d) => d.decision === reopened.decision)?.assumption_ids ?? []).map((id) => ({ id })), brokenIds, reopened.broken_at)}</div>`
     : "";
   const assumed = !reopened && row.assumptions.length

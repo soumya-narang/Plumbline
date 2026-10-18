@@ -1,6 +1,7 @@
 import * as api from "./api.js";
 import { createAgent } from "./agent.js";
 import { renderDecisions } from "./decisions.js";
+import { renderMemory } from "./memory.js";
 import { renderEvidence } from "./evidence.js";
 import { renderFleet, rowKey } from "./fleet.js";
 import { VERDICT_RANK, esc, factView, plural } from "./format.js";
@@ -18,6 +19,7 @@ const TABS = ["evidence", "graph", "decisions", "ask"];
 const params = new URLSearchParams(location.search);
 const pinned = { artifact: params.get("artifact") };
 let map;
+let miniMap;
 
 function toast(html) {
   const el = $("toast");
@@ -122,6 +124,15 @@ function renderStory(snap, sel) {
   el.innerHTML = `<b>${esc(adv.package)}</b> was just poisoned. ${bits.join(", ")}. Pick a service to see how it gets in.`;
 }
 
+/** The dependency graph sits right under the verdict, so the path is seen in its graph without opening another tab. */
+function showMini(snap, sel) {
+  const wrap = $("ev-graph");
+  const row = snap.advisories.find((a) => a.id === sel.advisory)?.rows.find((r) => r.artifact === sel.artifact);
+  const show = !!row && row.verdict !== "UNKNOWN";
+  wrap.hidden = !show;
+  if (show) miniMap.show(snap, sel);
+}
+
 function render(changed = new Set()) {
   const { snap, sel } = state;
   renderStory(snap, sel);
@@ -131,10 +142,13 @@ function render(changed = new Set()) {
     onArtifact: (id) => { state.sel.artifact = id; setTab("evidence"); render(); },
   });
   renderEvidence(snap, sel, ctx, { onApprove, onVerify });
-  renderDecisions(snap, sel, (advisory, artifact) => { state.sel = { advisory, artifact }; setTab("evidence"); render(); });
+  const choose = (advisory, artifact) => { state.sel = { advisory, artifact }; setTab("evidence"); render(); };
+  renderMemory(snap, sel, choose);
+  renderDecisions(snap, sel, choose);
   renderNotice(snap);
   renderWhatIf(snap, { onRevise, onClear });
   map.show(snap, sel);
+  showMini(snap, sel);
 }
 
 async function onApprove(advisory, artifact, approver) {
@@ -238,6 +252,7 @@ async function boot() {
   initInk();
   initNav();
   map = createMap();
+  miniMap = createMap({ host: "mini-map", caption: "mini-caption", veil: "mini-veil" }, { padTop: 40 });
   const meta = await api.init();
   state.meta = meta;
   initHood(meta);

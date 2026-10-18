@@ -149,6 +149,8 @@ it, 3 can't be judged without a lockfile, 13 are clear."* Below it are three pan
    - **Ask the agent.** Seven suggested questions, a free-text box (live mode), and a trace showing every tool call the agent made with its duration, followed by the
      answer and a line stating who wrote it (the built-in planner or a named model, or the planner stepping in with the reason).
 
+The graph is shown, not only described, in four places: the **Evidence** tab draws the service's whole dependency graph under the verdict with the poisoned path lit and each hop labelled `LOCKS` or `REQUIRES`; the **Decisions** tab opens with a **memory graph** (`(Decision)-[:ASSUMES]->(Fact)`) in which the fact that stopped being true and every decision hanging from it turn red, and a reopened decision's evidence repeats that graph for just that decision; the **Ask the agent** trace is a chain of tool calls, each labelled with the graph operation it ran (shortest path, PageRank, the reopen traversal); and the checker draws the poisoned paths in your own graph.
+
 When a decision reopens, a notice appears above the tabs with a **Review** button that jumps to the affected repository.
 
 **How it works.** Three short explanations (*Show the path, not a score*; *Say what you assumed*; *Reopen only what broke*), then a **"Then try it on your own project"** block

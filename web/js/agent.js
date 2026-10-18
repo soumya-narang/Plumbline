@@ -15,16 +15,30 @@ function summarise(call) {
   }
 }
 
+/** What each tool does to the graph, in graph terms. */
+const GRAPH_OP = {
+  list_advisories: "reads (Advisory) nodes",
+  triage_advisory: "fleet query over (Service)-[:RUNS]->(Artifact)-[:LOCKS]->…",
+  explain_path: "shortest path over [:REQUIRES]",
+  reopen_check: "traverses (Decision)-[:ASSUMES]->(Fact)",
+  propose_decision: "reads the path; writes nothing",
+  list_decisions: "reads (Decision) nodes",
+  fix_first: "fleet query: which one fix clears the most services",
+  critical_dependencies: "PageRank over [:REQUIRES]",
+  hand_off_fix: "writes a (Task) node for the next agent",
+};
+
 const shortArgs = (args) =>
   Object.entries(args ?? {}).filter(([k]) => k !== "at").map(([, v]) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ");
 
 function resultHtml(run) {
-  const calls = run.calls.map((c) => `<div class="call"><b>${esc(c.name)}</b>(${esc(shortArgs(c.args))}) → ${esc(summarise(c))}${c.ms != null ? ` <span class="ms">${c.ms} ms</span>` : ""}</div>`).join("");
+  const calls = run.calls.map((c) => `<li class="call"><span class="node" aria-hidden="true"></span><div><b>${esc(c.name)}</b>(${esc(shortArgs(c.args))}) → ${esc(summarise(c))}${c.ms != null ? ` <span class="ms">${c.ms} ms</span>` : ""}
+    ${GRAPH_OP[c.name] ? `<span class="op">${esc(GRAPH_OP[c.name])}</span>` : ""}</div></li>`).join("");
   const who = run.backend === "llm"
     ? `Written by ${esc(run.model)}, which also chose the tools.`
     : `${run.note ? `${esc(run.note)} ` : ""}Written by the built-in planner. No model was involved.`;
-  return `<div class="trace" aria-label="Tool calls made over MCP">${calls}</div>
-    <p class="answer">${esc(run.answer)}</p>
+  return `<ol class="trace" aria-label="Tool calls made over MCP, each one a step through the graph">${calls}</ol>
+    <div class="answer">${String(run.answer).split(/\. (?=EXPOSED|UNKNOWN|CLEARED)/).map((t, i, all) => `<p>${esc(i < all.length - 1 && !t.endsWith(".") ? `${t}.` : t)}</p>`).join("")}</div>
     <span class="answer-by">${who} Verdicts elsewhere on the page come from the tool results, not from this sentence.</span>`;
 }
 

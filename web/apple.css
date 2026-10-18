@@ -239,3 +239,52 @@ h3, .clock, .ev-head h3, .list-head h3, .jobs dt, .bar-group figcaption, .bench 
   .hero { --h-dim: #f4f6f8; }
   .hero-sub, .chain .cap, .chain figcaption { color: #f4f6f8; }
 }
+
+/* ---- Memory graph: decisions and the facts they assumed (js/memory.js) ---- */
+.memory { margin-bottom: 22px; padding: 16px 16px 12px; border-radius: 20px; background: color-mix(in srgb, var(--ink) 3.5%, var(--surface)); box-shadow: 0 0 0 1px var(--hair); }
+.memory .wq-head { margin: 0 0 4px; }
+.m-sentence { margin: 0 0 8px; font-size: .9rem; color: var(--ink-2); line-height: 1.45; letter-spacing: var(--track-body); }
+.m-sentence b { color: var(--flag-ink); font-weight: 600; }
+.memory-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.m-edge { fill: none; stroke: var(--hair-2); stroke-width: 1.4; transition: stroke .3s; }
+.m-edge.bad { stroke: var(--flag); stroke-width: 2; stroke-dasharray: 5 4; animation: m-flow 1.1s linear infinite; }
+.m-node rect { fill: var(--surface); stroke: var(--hair-2); stroke-width: 1.2; transition: fill .3s, stroke .3s; }
+.m-node text { fill: var(--ink); font: 500 12px/1 var(--text); letter-spacing: var(--track-body); pointer-events: none; }
+.m-dec { cursor: pointer; outline: none; }
+.m-dec:hover rect, .m-dec:focus-visible rect { stroke: var(--ink-2); }
+.m-dec:focus-visible rect { stroke-width: 2.4; }
+.m-dec.sel rect { stroke: var(--ink); stroke-width: 2; }
+.m-dec.bad rect { fill: var(--flag-wash); stroke: var(--flag); }
+.m-fact.lock text { fill: var(--ink-3); }
+.m-fact.advisory rect { fill: color-mix(in srgb, var(--brass) 14%, var(--surface)); stroke: color-mix(in srgb, var(--brass) 50%, transparent); }
+.m-fact.bad rect { fill: var(--flag-wash); stroke: var(--flag); stroke-width: 1.8; }
+.m-fact.bad text { fill: var(--flag-ink); font-weight: 600; }
+.m-share { fill: var(--ink-3) !important; font-variant-numeric: tabular-nums; }
+.m-pulse { fill: var(--flag); }
+.m-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 10px 0 0; font-size: .75rem; color: var(--ink-3); }
+.m-legend code { font: 500 .72rem var(--mono); color: var(--ink-2); }
+.m-legend .k { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 4px; vertical-align: -1px; background: var(--surface); box-shadow: inset 0 0 0 1.2px var(--hair-2); }
+.m-legend .k.fact { border-radius: 99px; background: color-mix(in srgb, var(--brass) 25%, var(--surface)); }
+.m-legend .k.bad { background: var(--flag-wash); box-shadow: inset 0 0 0 1.4px var(--flag); }
+.section.reopened .memory-svg { margin: 4px 0 12px; padding: 10px 8px; border-radius: 16px; background: color-mix(in srgb, var(--ink) 3.5%, var(--surface)); box-shadow: 0 0 0 1px var(--hair); }
+.plumb-svg .rel { fill: var(--ink-3); font: 500 9.5px var(--mono); letter-spacing: .02em; }
+@keyframes m-flow { to { stroke-dashoffset: -18; } }
+@media (prefers-reduced-motion: reduce) { .m-edge.bad { animation: none; } }
+
+/* ---- The dependency graph inline under the verdict ---- */
+.ev-graph { margin-top: 22px; }
+.ev-graph h4 { margin: 0 0 8px; font-size: .9rem; font-weight: 600; color: var(--ink-3); }
+.map.mini { height: 260px; }
+
+/* ---- The agent's trace as a chain through the graph ---- */
+ol.trace { position: relative; margin: 14px 0; padding: 0; list-style: none; }
+ol.trace::before { content: ""; position: absolute; left: 6px; top: 12px; bottom: 12px; width: 2px; background: var(--hair-2); border-radius: 2px; }
+ol.trace .call { position: relative; display: block; padding: 6px 0 6px 28px; font-size: .86rem; line-height: 1.45; }
+ol.trace .call .node { position: absolute; left: 0; top: 11px; width: 14px; height: 14px; border-radius: 99px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink-2); }
+ol.trace .call:last-child .node { background: var(--ink); }
+ol.trace .op { display: block; margin-top: 2px; font: 500 .74rem var(--mono); color: var(--ink-3); }
+ol.trace { border-left: 0; padding-left: 0; font: 400 .86rem/1.45 var(--text); letter-spacing: var(--track-body); overflow: visible; }
+ol.trace .call::before { content: none; }
+ol.trace .call b { font-family: var(--mono); font-weight: 500; font-size: .82rem; }
+.answer p { margin: 0 0 10px; font-size: .96rem; line-height: 1.5; }
+.answer p:first-child { font-weight: 600; }
