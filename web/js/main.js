@@ -266,6 +266,8 @@ async function boot() {
   document.querySelector(".tryit-live").hidden = !live;
   document.querySelector(".tryit-static").hidden = live;
   $("nav-check").hidden = !live; // the checker needs the live server
+  $("hero-check").hidden = !live;
+  $("try-strip").hidden = !live;
   if (meta.repo) { const a = $("repo-link"); a.href = meta.repo; a.hidden = false; }
 
   createAgent({ suggestions: meta.suggestions, live, getStop: () => state.stop, ask: api.ask });

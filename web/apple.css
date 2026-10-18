@@ -288,3 +288,14 @@ ol.trace .call::before { content: none; }
 ol.trace .call b { font-family: var(--mono); font-weight: 500; font-size: .82rem; }
 .answer p { margin: 0 0 10px; font-size: .96rem; line-height: 1.5; }
 .answer p:first-child { font-weight: 600; }
+
+/* ---- Pointing at the demo: the checker is the one call to action ---- */
+.nav-links a.nav-cta { margin-left: 4px; padding: 7px 15px; border-radius: 99px; background: var(--flag); color: #fff; opacity: 1; font-weight: 600; box-shadow: 0 1px 0 rgba(255,255,255,.25) inset; }
+.nav-links a.nav-cta:hover, .nav:not(.solid) .nav-links a.nav-cta:hover { background: color-mix(in srgb, var(--flag) 88%, #fff); }
+.hero-try { display: inline-flex; align-items: center; padding: 12px 22px; border-radius: 99px; font: 600 1.0625rem var(--text); letter-spacing: var(--track-body); color: #fff; text-decoration: none; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.4); transition: background-color .2s; }
+.hero-try:hover { background: rgba(255,255,255,.12); }
+.hero-try:active { transform: scale(.97); }
+.try-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin: 22px 0 0; padding: 18px 22px; border-radius: 22px; background: var(--flag-wash); box-shadow: 0 0 0 1px color-mix(in srgb, var(--flag) 30%, transparent); }
+.try-strip[hidden] { display: none; }
+.try-strip span { font-size: 1.0625rem; font-weight: 500; letter-spacing: var(--track-body); }
+.try-strip .btn { padding: 11px 22px; border-radius: 99px; text-decoration: none; font-weight: 600; }

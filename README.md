@@ -123,7 +123,7 @@ later revision is invisible before that revision. This is what lets the replay m
 
 ### Home page (`/`)
 
-**Navigation.** A floating pill bar: Replay, How it works, Under the hood, and (live mode only) Check yours; plus a light/dark theme toggle that follows
+**Navigation.** A floating pill bar: Replay, How it works, The graph, and (live mode only) a highlighted **Check your project** button; plus a light/dark theme toggle that follows
 the system setting and remembers the choice. On wide screens a vertical "depth ruler" at the left edge (0 question, 1 replay, 2 method, 3 graph)
 tracks which section you are reading; it fades out before the footer.
 
@@ -156,7 +156,7 @@ When a decision reopens, a notice appears above the tabs with a **Review** butto
 **How it works.** Three short explanations (*Show the path, not a score*; *Say what you assumed*; *Reopen only what broke*), then a **"Then try it on your own project"** block
 with the three steps for the checker and a button to it (live mode; the recorded copy explains that it needs a server).
 
-**Under the hood.** "One graph does three jobs" (evidence, memory, tools), live figures from the loaded graph, a **Cypher viewer** with tabs for the four key queries
+**The graph.** "One graph does three jobs" (evidence, memory, tools), live figures from the loaded graph, a **Cypher viewer** with tabs for the four key queries
 (evidence path, reopen, fix first, PageRank), and **"Measured, not claimed"**: the benchmark as bars and a table.
 
 **Footer and status.** Badges say whether the site is on the live graph or recorded snapshots and which agent backend is active, with a link to the source.
