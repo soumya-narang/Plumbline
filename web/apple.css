@@ -300,3 +300,16 @@ ol.trace .call b { font-family: var(--mono); font-weight: 500; font-size: .82rem
 .try-strip span { font-size: 1.0625rem; font-weight: 500; letter-spacing: var(--track-body); }
 .try-strip .btn { padding: 11px 22px; border-radius: 99px; text-decoration: none; font-weight: 600; }
 .hero-try[hidden], .nav-links a.nav-cta[hidden] { display: none; }
+
+/* ---- The proof: a real button, and a result you can see ---- */
+details.proof > summary { padding: 10px 0; font-size: 1rem; color: var(--ink); }
+.stamp dd button.link#verify { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 99px; background: var(--ink); color: var(--surface); font: 600 .9rem var(--text); text-decoration: none; letter-spacing: var(--track-small); }
+.stamp dd button.link#verify:hover:not(:disabled) { color: var(--surface); opacity: .85; }
+.stamp dd button.link#verify:active:not(:disabled) { transform: scale(.97); }
+.stamp dd button.link#verify:disabled { opacity: .4; }
+.result.ok, .result.bad { display: inline-block; margin: 10px 0 0 0; padding: 8px 14px; border-radius: 12px; font: 600 .92rem var(--text); line-height: 1.35; }
+.result.ok { color: #0a7a4b; background: rgba(20,160,100,.12); box-shadow: 0 0 0 1px rgba(20,160,100,.35); }
+.result.bad { color: var(--flag-ink); background: var(--flag-wash); box-shadow: 0 0 0 1px var(--flag); }
+.result:empty { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .result.ok { color: #4fd3a0; } }
+:root[data-theme="dark"] .result.ok { color: #4fd3a0; }

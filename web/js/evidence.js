@@ -110,7 +110,7 @@ export function renderEvidence(snap, sel, ctx, handlers) {
         ${row.verdict === "EXPOSED" && ctx.queries?.q2 ? `<pre class="cypher">${highlightCypher(ctx.queries.q2)}</pre>` : ""}`
     : "";
   const how = assumed || proof
-    ? `<details class="proof"${reopened ? " open" : ""}><summary>How this was decided</summary>${assumed}${proof}</details>`
+    ? `<details class="proof"${reopened || row.verdict === "EXPOSED" ? " open" : ""}><summary>How this was decided</summary>${assumed}${proof}</details>`
     : "";
 
   body.innerHTML = `<div class="verdict ${row.verdict}">${mark(row.verdict)} ${esc(VERDICT_WORD[row.verdict])}</div>
@@ -135,7 +135,7 @@ export function renderEvidence(snap, sel, ctx, handlers) {
     out.textContent = "Re-deriving from the graph…";
     const res = await handlers.onVerify(adv.id, row.artifact);
     out.className = `result ${res.ok ? "ok" : "bad"}`;
-    out.textContent = `${res.ok ? "Verified" : "Failed"}: ${res.detail}`;
+    out.textContent = `${res.ok ? "✓ Verified" : "✗ Failed"}: ${res.detail}`;
     e.target.disabled = false;
   });
 }
